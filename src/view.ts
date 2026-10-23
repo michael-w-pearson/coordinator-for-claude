@@ -70,9 +70,8 @@ export function strip(stages: readonly StageDef[], stageId: string, failed: bool
   return stages.map((s, i) => {
     const kind = i < at ? 'done' : i === at ? (failed ? 'failed' : at === stages.length - 1 ? 'done' : 'current') : 'todo'
     return seg(kind === 'todo' ? '▱' : '▰', {
-      block: true,
-      ...(kind === 'current' ? { color: s.color } : kind === 'failed' ? { color: 'red' as Color } : kind === 'done' ? { color: 'green' as Color } : {}),
-      ...(kind === 'todo' || kind === 'done' ? { dim: true } : {}),
+      ...(kind === 'failed' ? { color: 'red' as Color } : kind === 'todo' ? {} : { color: s.color }),
+      ...(kind === 'todo' ? { dim: true } : {}),
     })
   })
 }

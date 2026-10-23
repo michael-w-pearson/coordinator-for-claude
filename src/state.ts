@@ -24,7 +24,8 @@ export function badge(rec: SectionRecord<unknown> | null, isEmpty: boolean, now:
   const state = sectionState(rec, isEmpty, now, staleAfterMs)
   const age = rec?.fetchedAt != null ? ageLabel(rec.fetchedAt, now) : null
   if (state === 'error') {
-    const reason = rec?.error ?? 'no data yet'
+    const full = rec?.error ?? 'no data yet'
+    const reason = full.length > 70 ? `${full.slice(0, 69)}…` : full
     return { state, text: age ? `unavailable: ${reason} (last good ${age === 'now' ? 'just now' : `${age} ago`})` : `unavailable: ${reason}`, color: 'red' }
   }
   if (state === 'stale') {

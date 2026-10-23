@@ -249,7 +249,7 @@ function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggl
   const { Box, Button, Text } = props.ui
   const v = props.view
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={v.state === 'error' ? 'red' : 'gray'} paddingX={1} paddingY={0} marginBottom={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1} paddingY={0} marginBottom={1}>
       <Box flexDirection="row" justifyContent="space-between">
         <Button key={`toggle-${v.id}`} plain onPress={props.onToggle}>
           <Text bold>{titleCase(v.title)}</Text>
