@@ -1,0 +1,13 @@
+{
+ "labels": [
+  {
+   "id": "LA_kwDODKw3uc7QD3p7",
+   "name": "needs-triage",
+   "description": "needs to be reviewed",
+   "color": "D6393F"
+  }
+ ],
+ "state": "OPEN",
+ "updatedAt": "2026-10-22T15:21:29Z",
+ "url": "https://github.com/cli/cli/issues/14789"
+}

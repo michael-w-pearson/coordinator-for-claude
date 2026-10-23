@@ -1,0 +1,47 @@
+[
+ {
+  "number": 14754,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "gh auth login --with-token accepts a token without the advertised workflow scope",
+  "url": "https://github.com/cli/cli/issues/14754"
+ },
+ {
+  "number": 14703,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "`gh issue create --type` creates the issue, then exits 1 with `type \"X\" not found` without printing its URL (causes duplicates on retry)",
+  "url": "https://github.com/cli/cli/issues/14703"
+ },
+ {
+  "number": 14647,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "`gh skill update` help incorrectly promises to preserve locally added files",
+  "url": "https://github.com/cli/cli/issues/14647"
+ },
+ {
+  "number": 14550,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "gh pr close <URL> --delete-branch can force-delete a same-named branch in an unrelated repository",
+  "url": "https://github.com/cli/cli/issues/14550"
+ },
+ {
+  "number": 14537,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "`gh pr merge <url> --delete-branch` removes a worktree and deletes a same-named branch in the cwd's unrelated repository",
+  "url": "https://github.com/cli/cli/issues/14537"
+ }
+]

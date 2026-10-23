@@ -1,0 +1,37 @@
+┌─ N E E D S   Y O U   20 · ok · now ────────────────────────────────────┐
+│ ● gh auth login --with-token accepts a to… 15h
+│ ● `gh issue create --type` creates the is… 15h
+│ ● `gh skill update` help incorrectly prom… 15h
+│ ● gh pr close <URL> --delete-branch can f… 15h
+│ ● `gh pr merge <url> --delete-branch` rem… 15h
+│ ● `gh release create` does not recognise … 15h
+│ ● `gh issue create` issue type supports o… 15h
+│ ● gh pr close --comment silently discards… 15h
+│ … and 12 more
+└────────────────────────────────────────────────────────────────────────┘
+┌─ L A N E S   1/2 moving · ok · now ────────────────────────────────────┐
+│ 1 of 5 moving                                        4 waiting  0 done
+│ ██████████████████████████████████████████████████████████████████████
+│ ■ build                                                        1   20%
+│ ■ verify                                                       0    0%
+│ ■ review                                                       4   80%
+│ ■ merge-line                                                   0    0%
+│ ■ merged                                                       0    0%
+│
+│ ● release download: add --verify to… draft, blocked idle 1d
+│   ▰▱▱▱▱ build · being written
+│ ● fix(issue create): resolve --type… ready, blocked
+│   ▰▰▰▱▱ review · waiting on a reviewer or a fix
+│   ← awaiting review
+│ ● docs(skills): clarify that skill … ready, blocked
+│   ▰▰▰▱▱ review · waiting on a reviewer or a fix
+│   ← awaiting review
+│ ● docs(skills): add task triggers a… ready, blocked
+│   ▰▰▰▱▱ review · waiting on a reviewer or a fix
+│   ← awaiting review
+│ ● docs: Add step to install working… ready, blocked
+│   ▰▰▰▱▱ review · waiting on a reviewer or a fix
+│   ← awaiting review
+│ Bar = build → verify → review → merge-line → merged
+│ Below 2 moving. No waiting lane to start.   [Refresh]
+└────────────────────────────────────────────────────────────────────────┘

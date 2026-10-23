@@ -1,0 +1,9 @@
+{
+  "feedVersion": 1,
+  "updated": "2026-10-22T10:00:00Z",
+  "lanes": [
+    { "title": "Hand-written lane for a pull request that has since merged", "ref": "cli#14784", "state": "ready, blocked", "stage": "review", "status": "moving" },
+    { "title": "Hand-written lane with no pull request", "stage": "build", "status": "waiting" }
+  ],
+  "needs": []
+}

@@ -1,0 +1,11 @@
+{
+  "name": "coordinator-band",
+  "owner": { "name": "coordinator-band contributors" },
+  "plugins": [
+    {
+      "name": "coordinator-band",
+      "source": "./",
+      "description": "A status band and pane for Claude Code. Your work as lanes with a pipeline strip, built from GitHub or any source, with no LLM tokens."
+    }
+  ]
+}

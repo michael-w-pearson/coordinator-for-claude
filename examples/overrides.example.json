@@ -1,0 +1,28 @@
+{
+  "feedVersion": 1,
+  "lanes": [
+    {
+      "title": "Write the launch post",
+      "ref": "example-app#7",
+      "stage": "review",
+      "status": "blocked",
+      "blockedBy": "waiting on the design team"
+    },
+    {
+      "title": "Pick a new logo",
+      "stage": "build",
+      "status": "waiting",
+      "state": "no pull request yet"
+    }
+  ],
+  "needs": [
+    {
+      "text": "Choose the release date",
+      "options": [
+        { "label": "Friday", "text": "Release on Friday." },
+        { "label": "Next week", "text": "Release next week." }
+      ],
+      "to": "<id of the Claude Code session that should receive the answer>"
+    }
+  ]
+}

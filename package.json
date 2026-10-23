@@ -1,0 +1,28 @@
+{
+  "name": "coordinator-band",
+  "version": "1.0.0",
+  "description": "A status band for Claude Code, built from your GitHub pull requests.",
+  "type": "module",
+  "bin": {
+    "band": "bin/band.mjs"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "claude plugin test .",
+    "test:node": "node --test \"test-node/*.test.mjs\"",
+    "fixtures": "node scripts/gen-fixtures.mjs --check",
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michael-w-pearson/coordinator-band.git"
+  },
+  "homepage": "https://github.com/michael-w-pearson/coordinator-band#readme",
+  "license": "MIT"
+}

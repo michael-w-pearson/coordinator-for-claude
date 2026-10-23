@@ -1,0 +1,8 @@
+{
+  "name": "coordinator-band",
+  "version": "1.0.0",
+  "description": "A status band and pane for Claude Code: your work as lanes with a pipeline strip, built from GitHub (or any source) with no LLM tokens.",
+  "types": "./types/index.d.ts",
+  "repository": "https://github.com/michael-w-pearson/coordinator-band",
+  "license": "MIT"
+}

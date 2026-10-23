@@ -1,0 +1,47 @@
+[
+ {
+  "number": 14783,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "release download: add --verify to check immutability and build provenance before downloading",
+  "url": "https://github.com/cli/cli/pull/14783"
+ },
+ {
+  "number": 14727,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "fix(issue create): resolve --type before creating the issue",
+  "url": "https://github.com/cli/cli/pull/14727"
+ },
+ {
+  "number": 14689,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "docs(skills): clarify that skill update replaces directory contents and discards local files",
+  "url": "https://github.com/cli/cli/pull/14689"
+ },
+ {
+  "number": 14629,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "docs(skills): add task triggers and newer capabilities to gh skill description",
+  "url": "https://github.com/cli/cli/pull/14629"
+ },
+ {
+  "number": 14373,
+  "repository": {
+   "name": "cli",
+   "nameWithOwner": "cli/cli"
+  },
+  "title": "docs: Add step to install working version on Ubuntu Pro",
+  "url": "https://github.com/cli/cli/pull/14373"
+ }
+]
