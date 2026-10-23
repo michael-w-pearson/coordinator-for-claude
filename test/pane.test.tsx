@@ -18,13 +18,13 @@ const PANE = {
 
 type Hooks = (event: string, handler: (...args: never[]) => unknown) => void
 
-function world(on: Hooks, files: Record<string, string>, calls: string[][] = []): ReturnType<typeof mock.clock> {
+function world(on: Hooks, files: Record<string, string>, calls: string[][] = [], opens: string[] = []): ReturnType<typeof mock.clock> {
   mock.env(on as never, { HOME })
   mock.store(on as never)
   const clock = mock.clock(on as never, { now: Date.now() })
   on('command.register', (() => ({ value: { command: 'band' } })) as never)
   on('ui.status', (() => ({ value: undefined })) as never)
-  on('ui.open', (() => ({ value: { isPlaced: true } })) as never)
+  on('ui.open', (() => { opens.push('open'); return { value: { isPlaced: true } } }) as never)
   on('session.id', (() => ({ value: 'session-1' })) as never)
   on('session.cwd', (() => ({ value: '/work/app' })) as never)
   on('session.start', ((_: unknown, e: { cwd: string }) => ({ cwd: e.cwd })) as never)
@@ -76,4 +76,31 @@ test('the pane fetches on its own at session start, with no scheduler and no dat
   await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
   expect(calls.filter(c => c[1] === 'pr' && c.includes('open')).length).toBe(1)
   expect(calls.every(c => c[0] === 'gh')).toBe(true)
+})
+
+test('a session that matches no profile gets no pane, no timer and no fetches', async ($, on) => {
+  const calls: string[][] = []
+  const opens: string[] = []
+  const two = JSON.stringify({
+    configVersion: 1,
+    profiles: {
+      a: { match: { sessions: ['someone-else'] }, sources: [{ type: 'github', owner: 'cli', repos: ['cli'], label: 'band' }] },
+      b: { match: { cwdContains: ['no-such-folder'] }, sources: [{ type: 'github', owner: 'cli', repos: ['cli'], label: 'band' }] },
+    },
+  })
+  world(on as never, { [`${BAND}/config.json`]: two }, calls, opens)
+  await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
+  expect(opens.length).toBe(0)
+  expect(calls.length).toBe(0)
+})
+
+test('a session named in a profile match opens the pane', async ($, on) => {
+  const opens: string[] = []
+  const matched = JSON.stringify({
+    configVersion: 1,
+    profiles: { a: { match: { sessions: ['session-1'] }, sources: [{ type: 'github', owner: 'cli', repos: ['cli'], label: 'band' }] }, b: { match: { sessions: ['other'] }, sources: [{ type: 'github', owner: 'cli', repos: ['cli'], label: 'band' }] } },
+  })
+  world(on as never, { [`${BAND}/config.json`]: matched }, [], opens)
+  await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
+  expect(opens.length).toBe(1)
 })

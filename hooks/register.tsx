@@ -300,6 +300,15 @@ function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggl
   )
 }
 
+let timerStarted = false
+
+/** Fetch every 30 s, but only in a session that has a profile. Other sessions never start the timer. */
+function ensureTimer($: EngineInterface): void {
+  if (timerStarted) return
+  timerStarted = true
+  $.clock.every(30_000, () => { void tick($).catch(() => {}) })
+}
+
 export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const ui = $.ui.resolve(e)
@@ -377,9 +386,13 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'band', description: 'Coordinator band: /band init <owner>/<repo>, validate, refresh, doctor, on <profile>' })
     await $.command.register({ name: 'pane', description: 'Open the coordinator band pane' })
-    await tick($).catch(() => {})
-    $.clock.every(30_000, () => { void tick($).catch(() => {}) })
-    void $.ui.open({ id: PANE, title: paneTitle() })
+    // Only a session that matches a profile (its id, its folder, or /band on) gets the pane, the timer and the fetches.
+    await loadAll($).catch(() => {})
+    if (profileName) {
+      await tick($).catch(() => {})
+      ensureTimer($)
+      void $.ui.open({ id: PANE, title: paneTitle() })
+    }
     return next(e)
   })
 
@@ -402,6 +415,7 @@ export const register: Register = on => {
       await $.fs.write(path, `${JSON.stringify(cfg, null, 2)}\n`)
       await $.fs.write(`${h.home}/overrides/main.example.json`, STARTER_OVERRIDE)
       await tick($, true)
+      ensureTimer($)
       void $.ui.open({ id: PANE, title: paneTitle() })
       return { text: `Wrote ${path}. Add the label "${cfg.profiles.main?.sources[0] && 'label' in cfg.profiles.main.sources[0] ? cfg.profiles.main.sources[0].label : 'band'}" to a pull request in ${spec.owner}/${spec.repo} and it appears as a lane. Needs the GitHub tool: /band doctor` }
     }
@@ -434,6 +448,7 @@ export const register: Register = on => {
       enrolled[await $.session.id()] = name
       await $.store.set('enrolled', enrolled)
       await tick($, true)
+      ensureTimer($)
       void $.ui.open({ id: PANE, title: paneTitle() })
       return { text: `This session now shows "${name}".` }
     }
