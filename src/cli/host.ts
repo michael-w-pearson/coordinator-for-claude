@@ -2,7 +2,8 @@
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
+import { join } from 'node:path'
 
 import type { Host, RunOptions, RunResult } from '../types.ts'
 
@@ -85,6 +86,19 @@ export function createHost(home: string): Host {
     now: () => Date.now(),
     platform: process.platform === 'win32' ? 'win32' : process.platform === 'darwin' ? 'darwin' : 'linux',
     home,
+    async recentJson(dir, days) {
+      const since = Date.now() - days * 86_400_000
+      const out: string[] = []
+      const walk = async (d: string, depth: number): Promise<void> => {
+        for (const e of await readdir(d, { withFileTypes: true })) {
+          const p = join(d, e.name)
+          if (e.isDirectory() && depth < 3) await walk(p, depth + 1)
+          else if (e.isFile() && e.name.endsWith('.json') && (await stat(p)).mtimeMs >= since) out.push(await readFile(p, 'utf8'))
+        }
+      }
+      await walk(dir, 0)
+      return out
+    },
     async http(url, ms) {
       const res = await fetch(url, { signal: AbortSignal.timeout(ms) })
       void res.body?.cancel()

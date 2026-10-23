@@ -167,3 +167,23 @@ test('old Node gets a plain message', () => {
   // The guard lives in bin/band.mjs and reads process.versions, so check the text it prints.
   assert.match(readFileSync(bin, 'utf8'), /needs Node 22\.18 or newer \(you have \$\{process\.versions\.node\}\)\. Get it from https:\/\/nodejs\.org/)
 })
+
+test('graph prints a Mermaid diagram, and session records attach "ask its session" to the owning lane', () => {
+  const sessions = join(tmp, 'sessions', 'a', 'b')
+  mkdirSync(sessions, { recursive: true })
+  writeFileSync(join(sessions, 'local_1.json'), JSON.stringify({
+    sessionId: 'local_1', title: 'Fix the lint', isArchived: false, lastActivityAt: 5,
+    prs: [{ prNumber: 13788, repo: 'cli/cli' }],
+  }))
+  const cfg = JSON.parse(readFileSync(join(home, 'config.json'), 'utf8'))
+  cfg.profiles.main.sessions = { dir: join(tmp, 'sessions') }
+  writeFileSync(join(home, 'config.json'), JSON.stringify(cfg))
+  assert.equal(band(['refresh']).status, 0)
+  const data = JSON.parse(readFileSync(join(home, 'data', 'main.json'), 'utf8'))
+  assert.deepEqual(data.lanes.data.find(l => l.ref === 'cli#13788')?.session, { id: 'local_1', title: 'Fix the lint' })
+  const g = band(['graph'])
+  assert.equal(g.status, 0, out(g))
+  assert.match(g.stdout, /^flowchart LR/)
+  assert.match(g.stdout, /classDef n_plan fill:#/)
+  assert.match(g.stdout, /n_cli_13788\[/)
+})

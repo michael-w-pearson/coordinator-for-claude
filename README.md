@@ -5,6 +5,8 @@ A status band for [Claude Code](https://claude.com/claude-code). It shows your w
 - Every open pull request with a label (for example `band`) becomes a lane.
 - Each lane has a five-block pipeline strip: `build → verify → review → merge-line → merged`, and a plain-English line about the current stage.
 - A **NEEDS YOU** section lists the issues and pull requests that wait for you.
+- A **Next** line says what to do right now. Each lane shows its time in stage, failing check names, reviewers and dependencies. Lanes group into campaigns, and `band graph` draws them as a Mermaid diagram.
+- Alerts, a **Compact** view, a **Focus** view for the current repository, and an **Ask Claude** button on blocked lanes.
 - Optional sections: a merge queue, Codex Cloud tasks, local service checks. The merge-queue command can be expensive (hundreds of GitHub calls a run), so it runs at most every 30 minutes and backs off after a failure.
 - It never calls a language model. It costs **no tokens**. It reads GitHub with the `gh` tool and sends nothing anywhere else.
 

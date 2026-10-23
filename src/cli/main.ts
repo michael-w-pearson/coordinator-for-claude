@@ -1,7 +1,7 @@
 // Entry point of the `band` command: picks the sub-command.
 
-import { doctor, init, refresh, show, validate, version } from './commands.ts'
-import { INIT_HELP, DOCTOR_HELP, REFRESH_HELP, SHOW_HELP, VALIDATE_HELP } from './commands.ts'
+import { doctor, graph, init, refresh, show, validate, version } from './commands.ts'
+import { GRAPH_HELP, INIT_HELP, DOCTOR_HELP, REFRESH_HELP, SHOW_HELP, VALIDATE_HELP } from './commands.ts'
 import { migrate, MIGRATE_HELP } from './migrate-cmd.ts'
 import { scheduleCommand, SCHEDULE_HELP } from './schedule-cmd.ts'
 
@@ -14,6 +14,7 @@ Usage: band <command> [options]
   doctor     Check Node, gh, the config, the data and the scheduled job
   refresh    Fetch fresh data now
   show       Print the band as text
+  graph      Print lanes and their dependencies as a Mermaid diagram
   migrate    Upgrade an old config or profiles file
   schedule   Refresh on a timer (install, uninstall, status)
   version    Print the version
@@ -22,7 +23,7 @@ Run "band <command> --help" for the options of one command.`
 
 const HELP: Record<string, string> = {
   init: INIT_HELP, validate: VALIDATE_HELP, doctor: DOCTOR_HELP, refresh: REFRESH_HELP,
-  show: SHOW_HELP, migrate: MIGRATE_HELP, schedule: SCHEDULE_HELP,
+  show: SHOW_HELP, graph: GRAPH_HELP, migrate: MIGRATE_HELP, schedule: SCHEDULE_HELP,
 }
 
 export async function main(argv: string[]): Promise<number> {
@@ -34,6 +35,7 @@ export async function main(argv: string[]): Promise<number> {
   }
   try {
     switch (command) {
+      case 'graph': return await graph(rest)
       case 'init': return await init(rest)
       case 'validate': return await validate(rest)
       case 'doctor': return await doctor(rest)

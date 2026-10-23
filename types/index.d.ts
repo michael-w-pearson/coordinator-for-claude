@@ -53,6 +53,8 @@ export type Lane = {
   dependsOn?: string[]
   /** Group name: a campaign label or a milestone. */
   campaign?: string
+  /** The Claude session that owns this pull request, when the band can tell. */
+  session?: { id: string; title: string }
 }
 
 export type NeedOption = { label: string; text: string }
@@ -73,6 +75,16 @@ export type CodexTask = { id: string; status: string; title: string; age: string
 export type HealthValue = 'up' | 'down'
 export type ServiceHealth = { name: string; value: HealthValue; detail?: string }
 
+/** What the band remembers about movement between refreshes. */
+export type Flow = {
+  /** Pull requests seen merged, newest 14 days. */
+  merged: { ref: string; at: number; campaign?: string }[]
+  /** Milliseconds each recent lane spent in a stage before moving on, by stage. */
+  stageMs: Record<string, number[]>
+  /** When merged pull requests were last asked for. */
+  mergedCheckedAt?: number
+}
+
 /** The data file for one profile. The refresher writes it. The pane reads it. */
 export type BandData = {
   dataVersion: number
@@ -83,6 +95,7 @@ export type BandData = {
   mergeLine: SectionRecord<MergeLineData> | null
   codex: SectionRecord<CodexTask[]> | null
   services: SectionRecord<ServiceHealth[]> | null
+  flow?: Flow
 }
 
 // ---- Config ---------------------------------------------------------------
@@ -159,6 +172,8 @@ export type ProfileConfig = {
   mergeLine?: MergeLineConfig
   codexCloud?: CodexConfig
   services?: ServiceConfig[]
+  /** Where the Claude desktop app keeps its session records. Turns on "ask its session". Read-only. */
+  sessions?: { dir: string; days?: number }
 }
 
 export type RefreshConfig = {
@@ -170,6 +185,8 @@ export type RefreshConfig = {
 }
 
 export type Config = {
+  /** Hours in one stage before a lane counts as stuck. Default 24. */
+  stuckHours?: number
   configVersion: number
   refresh?: RefreshConfig
   /** Lanes below this count show a refill hint. 0 turns the hint off. */

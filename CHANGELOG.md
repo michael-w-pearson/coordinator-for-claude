@@ -4,6 +4,16 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- **Next** line at the top: what to do right now (answer a question, merge the queue head, unblock, nudge a stuck lane, start a waiting lane). Rules only, no model.
+- **Time in stage** on every lane, amber past `stuckHours` (default 24), red past 72 h. **Flow** lines: merged per day (7-day sparkline) and median time in each stage. Merged pull requests are asked for once an hour, one `gh pr list` per repository.
+- **Why stuck**: failing check names, who is asked to review, and what a lane waits on ("depends on #12" in the description).
+- **Campaigns**: lanes grouped by a `campaign:` label or a milestone, with merged against total. `campaignPrefix` on the github source changes the label prefix.
+- **Dependencies** section (a tree) and `band graph` (Mermaid text).
+- **Ask Claude** button on blocked lanes and on the Next line. With `sessions.dir` set on a profile, the button sends to the session that owns the pull request.
+- **Alerts**: a toast when a lane turns blocked, a lane gets stuck or the queue head changes. Each is said once.
+- **Compact** and **Focus** buttons in the pane.
+
 ### Changed
 - Merge line: default `ttlMinutes` is 30. A failed run backs off (ttl x2 per failure in a row, cap 60 minutes) and never retries inside that wait. Before, a failure was retried on every tick.
 

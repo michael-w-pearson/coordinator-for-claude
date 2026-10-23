@@ -74,6 +74,6 @@ test('the pane fetches on its own at session start, with no scheduler and no dat
   const calls: string[][] = []
   world(on as never, { [`${BAND}/config.json`]: CONFIG }, calls)
   await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
-  expect(calls.filter(c => c[1] === 'pr').length).toBe(1)
+  expect(calls.filter(c => c[1] === 'pr' && c.includes('open')).length).toBe(1)
   expect(calls.every(c => c[0] === 'gh')).toBe(true)
 })

@@ -45,6 +45,7 @@ export const DEFAULTS = {
   minMoving: 3,
   mergeLineTtlMinutes: 30, // the status command is expensive: hundreds of GitHub calls per run
   maxBackoffMinutes: 60,
+  mergedTtlMinutes: 60,
   statusColors: { moving: 'green', waiting: 'yellow', blocked: 'red', done: 'gray' } as const,
   needsLabel: 'needs-me',
   githubLimit: 30,
@@ -128,6 +129,10 @@ function checkProfile(name: string, raw: unknown, stageIds: Set<string>, problem
     problems.push({ path: `${path}.sources`, message: 'needs at least one source', fatal: true })
   } else {
     profile.sources.forEach((s, i) => checkSource(s, `${path}.sources[${i}]`, stageIds, problems))
+  }
+  const sessions = asRecord(profile.sessions)
+  if (profile.sessions !== undefined && (!sessions || !isString(sessions.dir) || !sessions.dir)) {
+    problems.push({ path: `${path}.sessions.dir`, message: 'needs the folder where the Claude desktop app keeps its session records', fatal: true })
   }
   const ml = asRecord(profile.mergeLine)
   if (profile.mergeLine !== undefined && (!ml || !Array.isArray(ml.command) || ml.command.length === 0)) {

@@ -2,6 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import { DEFAULT_STAGES, loadConfig, pickProfile } from '../src/config.ts'
+import { alerts } from '../src/insight.ts'
+import { fetchMerged, updateFlow } from '../src/flow.ts'
 import { checkData, emptyData, refreshMs } from '../src/data.ts'
 import { fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, fetchServices } from '../src/refresh.ts'
 import { buildStarterConfig, parseGithubRemote, STARTER_OVERRIDE } from '../src/starter.ts'
@@ -113,8 +115,12 @@ async function loadAll($: EngineInterface): Promise<void> {
   })
 }
 
+const fired = new Set<string>()
+
 async function putData($: EngineInterface, data: BandData): Promise<void> {
+  const before = current
   current = data
+  if (config) for (const text of alerts(before, data, config, Date.now(), fired)) $.ui.toast(text)
   await $.state.set(dataState, data)
   // Always visible, even with the pane closed: how many lanes move, and whether something needs you.
   const lanes = data.lanes.data
@@ -163,7 +169,11 @@ async function selfRefresh($: EngineInterface, h: Host, name: string, cfg: Confi
   const jobs: Promise<unknown>[] = [
     section('lanes', async () => {
       const rec = await fetchLanes(ctx, profile, current?.lanes)
-      if (current) await putData($, { ...current, lanes: rec, generatedAt: h.now() })
+      if (current) {
+        const now = h.now()
+        const flow = await fetchMerged(h, profile, updateFlow(current.flow, current.lanes.data, rec.data, now), now)
+        await putData($, { ...current, lanes: rec, flow, generatedAt: now })
+      }
     }),
     section('needs', async () => {
       const hadGoodFetch = current?.needs.fetchedAt != null
@@ -293,7 +303,7 @@ function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggl
 export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const ui = $.ui.resolve(e)
-    const { Box, Text } = ui
+    const { Box, Button, Text } = ui
     const [load, data, answered, collapsed] = await Promise.all([
       $.state.get(loadState), $.state.get(dataState), $.state.get(answeredState), read($, collapsedAtom),
     ])
@@ -309,10 +319,14 @@ export const register: Register = on => {
       )
     }
     const profile = l.config.profiles[l.profile]
+    const cwd = (await $.session.cwd()).replace(/\\/g, '/').toLowerCase()
+    const focusRepo = (data.value?.lanes.data ?? []).map(x => x.ref?.split('#')[0] ?? '').find(r => r && cwd.includes(r.toLowerCase()))
     const view = buildView(data.value ?? null, l.config, {
       now: Date.now(),
       title: profile?.title ?? l.profile,
       ...(profile?.mergeLine?.repo ? { repoFilter: profile.mergeLine.repo } : {}),
+      ...(collapsed.__compact ? { compact: true } : {}),
+      ...(collapsed.__focus && focusRepo ? { focus: focusRepo } : {}),
     }, answered.value ?? {})
     const toggle = (id: string) => () => update($, collapsedAtom, c => ({ ...c, [id]: !c[id] }))
     const choose = (needId: string, option: number) => {
@@ -331,13 +345,28 @@ export const register: Register = on => {
         }
       })()
     }
+    const ask = (text: string, to?: string) => {
+      void (async () => {
+        try {
+          await $.session.send({ to: { sessionId: to ?? (await $.session.id()) }, text })
+          $.ui.toast(to ? 'Sent to its session' : 'Asked Claude')
+        } catch (err) {
+          $.ui.toast(`Could not send: ${firstLine(String(err), 80)}`)
+        }
+      })()
+    }
     const act = (a: NonNullable<Seg['action']>) => {
       if (a.kind === 'choose') choose(a.needId, a.option)
+      else if (a.kind === 'ask') ask(a.text, a.to)
       else void tick($, true).catch(() => {})
     }
     return (
       <Box flexDirection="column">
         {(l.problems.length > 0) ? <Text color="yellow">{l.problems.join(' | ')}</Text> : null}
+        <Box flexDirection="row" justifyContent="flex-end">
+          <Button key="mode-compact" label={collapsed.__compact ? 'Full' : 'Compact'} onPress={toggle('__compact')} />
+          {focusRepo ? <Button key="mode-focus" label={collapsed.__focus ? 'All repos' : `Focus ${focusRepo}`} onPress={toggle('__focus')} /> : null}
+        </Box>
         {view.sections.map(s => (
           <Section key={s.id} ui={ui} view={s} collapsed={!!collapsed[s.id]} onToggle={toggle(s.id)} onAct={act} />
         ))}

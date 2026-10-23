@@ -5,6 +5,7 @@ import { createInterface } from 'node:readline/promises'
 import { join } from 'node:path'
 
 import { DEFAULTS, loadConfig, pickProfile } from '../config.ts'
+import { mermaid } from '../insight.ts'
 import { refreshProfile } from '../refresh.ts'
 import { parseGithubRemote, buildStarterConfig, STARTER_OVERRIDE } from '../starter.ts'
 import { renderText } from '../text.ts'
@@ -307,6 +308,28 @@ export async function refresh(argv: string[]): Promise<number> {
 }
 
 // ---- show ------------------------------------------------------------------
+
+export const GRAPH_HELP = `Usage: band graph [--profile n]
+
+Prints a Mermaid flowchart of the lanes: stage colours, dependencies ("depends on #12" in a pull request description) and campaigns.
+Paste it into a Markdown file or any Mermaid viewer.`
+
+export async function graph(argv: string[]): Promise<number> {
+  const p = parseArgs(argv, { bool: [], value: ['profile'] })
+  if (p.flags.help) { console.log(GRAPH_HELP); return 0 }
+  if (p.error) { console.error(p.error); return 2 }
+  const f = paths(bandHome())
+  const r = await readConfig(f.config)
+  if (!r.config) { for (const l of r.lines) console.error(l); return 1 }
+  const names = Object.keys(r.config.profiles)
+  const name = str(p, 'profile') ?? pickProfile(r.config, { id: '', cwd: process.cwd() }) ?? names[0]
+  if (!name || !r.config.profiles[name]) { console.error(`No profile named "${str(p, 'profile') ?? ''}". The profiles in your config are: ${names.join(', ')}.`); return 2 }
+  const d = await readData(f.data(name))
+  if (d.reason) { console.error(d.reason); return 1 }
+  if (!d.data) { console.log('no data yet - run: band refresh'); return 0 }
+  console.log(mermaid(d.data, r.config))
+  return 0
+}
 
 export const SHOW_HELP = `Usage: band show [--profile n] [--width n] [--json]
 

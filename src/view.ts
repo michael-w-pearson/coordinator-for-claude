@@ -2,10 +2,12 @@
 // and `band show` draws the same lines as plain text. So a test of this file tests what the person sees.
 
 import { DEFAULT_STAGES, DEFAULTS } from './config.ts'
+import { median, perDay, sparkline } from './flow.ts'
+import { askText, campaigns, depTree, nextAction } from './insight.ts'
 import { blockerChain, codexLaneLine, idleLabel, mergePosition, refNumber, refillCandidates } from './parsers.ts'
 import { badge } from './state.ts'
 import type { Badge } from './state.ts'
-import type { BandData, CodexTask, Color, Config, Lane, LaneStatus, Need, SectionRecord, StageDef } from './types.ts'
+import type { BandData, CodexTask, Color, Config, Flow, Lane, LaneStatus, Need, SectionRecord, StageDef } from './types.ts'
 import { ageLabel, clock, truncate } from './util.ts'
 
 export type Seg = {
@@ -17,7 +19,7 @@ export type Seg = {
   /** Draw as a small filled block (a stage of the pipeline strip) instead of text. */
   block?: boolean
   /** A button. The host decides what pressing it does. */
-  action?: { kind: 'choose'; needId: string; option: number } | { kind: 'refresh' }
+  action?: { kind: 'choose'; needId: string; option: number } | { kind: 'refresh' } | { kind: 'ask'; text: string; to?: string }
 }
 /** One row of a legend: a coloured square, a label on the left, a count and a share on the right. */
 export type LegendRow = { color: Color; label: string; value: string; pct: string }
@@ -26,7 +28,7 @@ export type HeadRow = { left: Seg[]; right: Seg[] }
 export type BarPart = { color: Color; n: number }
 export type Line = Seg[]
 export type SectionView = {
-  id: 'needs' | 'lanes' | 'services' | 'mergeline' | 'codex'
+  id: 'next' | 'needs' | 'lanes' | 'campaigns' | 'deps' | 'services' | 'mergeline' | 'codex'
   title: string
   color: Color
   /** Short words on the header: "ok · 2m", "stale: data 40m old", "empty", "unavailable". */
@@ -48,7 +50,7 @@ const MAX_NEEDS = 8
 const seg = (text: string, rest: Omit<Seg, 'text'> = {}): Seg => ({ text, ...rest })
 const dim = (text: string): Line => [seg(text, { dim: true })]
 
-export type ViewOptions = { now: number; title: string; repoFilter?: string }
+export type ViewOptions = { now: number; title: string; repoFilter?: string; compact?: boolean; /** Show only lanes of this repository name. */ focus?: string }
 
 function shortBadge(b: Badge): string {
   return b.state === 'error' ? 'unavailable' : b.text
@@ -105,11 +107,11 @@ function needsSection(rec: SectionRecord<Need[]>, config: Config, o: ViewOptions
   }
 }
 
-function lanesSection(rec: SectionRecord<Lane[]>, config: Config, o: ViewOptions, stale: number, codex: CodexTask[]): SectionView {
+function lanesSection(rec: SectionRecord<Lane[]>, config: Config, o: ViewOptions, stale: number, codex: CodexTask[], flow?: Flow): SectionView {
   const stages = config.stages ?? DEFAULT_STAGES
   const colors = { ...DEFAULTS.statusColors, ...config.statusColors } as Record<LaneStatus, Color>
   const b = badge(rec, rec.data.length === 0, o.now, stale)
-  const lanes = rec.data
+  const lanes = o.focus ? rec.data.filter(l => l.ref?.startsWith(`${o.focus}#`)) : rec.data
   const minMoving = config.minMoving ?? DEFAULTS.minMoving
   const moving = lanes.filter(l => l.status === 'moving').length
   const lines: Line[] = [...reasonLines(rec, b)]
@@ -135,8 +137,12 @@ function lanesSection(rec: SectionRecord<Lane[]>, config: Config, o: ViewOptions
       seg(truncate(lane.title, 34), { ...(lane.url ? { href: lane.url } : {}), ...(lane.status === 'done' ? { dim: true } : {}) }),
       seg(` ${lane.state || lane.status}`, { dim: true }),
       ...(idle ? [seg(` ${idle.label}`, { color: idle.color, bold: true })] : []),
+      ...(lane.since && lane.status !== 'done' && o.now - lane.since > 3_600_000
+        ? [seg(` ${ageLabel(lane.since, o.now)} in ${lane.stage}`, { color: o.now - lane.since > 72 * 3_600_000 ? 'red' : o.now - lane.since > (config.stuckHours ?? 24) * 3_600_000 ? 'yellow' : undefined, dim: o.now - lane.since <= (config.stuckHours ?? 24) * 3_600_000 })]
+        : []),
     ])
     const def = stageOf(config, lane.stage)
+    if (o.compact) { lines.pop(); lines.push([seg('● ', { color: colors[lane.status] }), seg(truncate(lane.title, 30), { ...(lane.url ? { href: lane.url } : {}) }), seg(` ${def?.label ?? lane.stage}`, { ...(def ? { color: def.color } : {}) }), ...(lane.since && lane.status !== 'done' ? [seg(` ${ageLabel(lane.since, o.now)}`, { dim: true })] : [])]); return }
     if (def) {
       lines.push([
         seg('  '), ...strip(stages, lane.stage, lane.failed),
@@ -154,9 +160,22 @@ function lanesSection(rec: SectionRecord<Lane[]>, config: Config, o: ViewOptions
       if (chain.length > 0) lines.push([seg(`  ← ${chain.map(n => `#${n}`).join(' ← ')}`, { color: 'yellow', dim: true })])
       else if (lane.blockedBy) lines.push([seg(`  ← ${lane.blockedBy}`, { color: 'yellow', dim: true })])
     } else if (lane.status === 'blocked' && lane.blockedBy) {
-      lines.push([seg(`  ✕ ${lane.blockedBy}`, { color: 'red', dim: true })])
+      const names = lane.checks ?? []
+      lines.push([seg(`  ✕ ${names.length > 0 ? `${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}` : lane.blockedBy}`, { color: 'red', dim: true })])
     }
+    if (lane.waitingOn?.length && lane.status !== 'done') {
+      lines.push([seg(`  ⏳ ${lane.waitingOn.map(n => `@${n}`).join(', ')}${lane.since ? ` for ${ageLabel(lane.since, o.now)}` : ''}`, { dim: true })])
+    }
+    if (lane.dependsOn?.length) lines.push([seg(`  ⛓ waits on ${lane.dependsOn.join(', ')}`, { dim: true })])
+    if (lane.status === 'blocked') lines.push([seg('  '), seg(lane.session ? '[Ask its session]' : '[Ask Claude]', { action: { kind: 'ask', text: askText(lane), ...(lane.session ? { to: lane.session.id } : {}) } })])
   })
+  if (flow && !o.compact) {
+    const week = perDay(flow, o.now)
+    const sum = week.reduce((a, b) => a + b, 0)
+    if (flow.mergedCheckedAt) lines.push([seg('Merged per day ', { dim: true }), seg(sparkline(week), { color: 'green' }), seg(`  ${sum} in 7d`, { dim: true })])
+    const medians = stages.flatMap(st => { const m = median(flow.stageMs[st.id] ?? []); return m === null ? [] : [`${st.label} ${ageLabel(0, m)}`] })
+    if (medians.length > 0) lines.push(dim(`Median time in stage: ${medians.join(' · ')}`))
+  }
   const hint: Seg = minMoving > 0 && lanes.length > 0 && moving < minMoving
     ? (() => {
       const next = refillCandidates(lanes)
@@ -217,6 +236,36 @@ function codexSection(rec: SectionRecord<CodexTask[]>, o: ViewOptions, stale: nu
   return { id: 'codex', title: 'codex cloud', color: 'gray', state: b.state, noteColor: b.color, note: shortBadge(b), lines }
 }
 
+function nextSection(data: BandData, config: Config, o: ViewOptions): SectionView {
+  const n = nextAction(data, config, o.now)
+  return {
+    id: 'next', title: 'next', color: n.color, state: 'ok', note: '', noteColor: 'gray',
+    lines: [[seg(n.text, { color: n.color, bold: true }), ...(n.ask ? [seg('  '), seg(n.to ? '[Ask its session]' : '[Ask Claude]', { action: { kind: 'ask' as const, text: n.ask, ...(n.to ? { to: n.to } : {}) } })] : [])]],
+  }
+}
+
+function campaignsSection(groups: ReturnType<typeof campaigns>): SectionView {
+  const lines: Line[] = groups.map(c => {
+    const total = c.open + c.merged
+    const filled = Math.round((c.merged / Math.max(1, total)) * 10)
+    return [
+      seg(truncate(c.name, 18).padEnd(18)),
+      seg('▰'.repeat(filled), { color: 'green' }), seg('▱'.repeat(10 - filled), { dim: true }),
+      seg(` ${c.merged}/${total} merged`, { dim: true }),
+      ...(c.blocked > 0 ? [seg(`  ${c.blocked} blocked`, { color: 'red' })] : []),
+    ]
+  })
+  return { id: 'campaigns', title: 'campaigns', color: 'gray', state: 'ok', note: `${groups.length}`, noteColor: 'gray', lines }
+}
+
+function depsSection(rows: ReturnType<typeof depTree>, config: Config): SectionView {
+  const lines: Line[] = rows.map(r => {
+    const def = stageOf(config, r.stage)
+    return [seg(`${'  '.repeat(r.depth)}${r.depth > 0 ? '└ ' : ''}${r.ref} ${truncate(r.title, 28)}`), seg(` ${r.stage}`, { ...(def ? { color: def.color } : {}) })]
+  })
+  return { id: 'deps', title: 'dependencies', color: 'gray', state: 'ok', note: `${rows.length}`, noteColor: 'gray', lines }
+}
+
 export function buildView(data: BandData | null, config: Config, o: ViewOptions, answered: Record<string, string> = {}): View {
   const stale = (config.refresh?.staleAfterMinutes ?? DEFAULTS.staleAfterMinutes) * 60_000
   if (!data) {
@@ -226,9 +275,14 @@ export function buildView(data: BandData | null, config: Config, o: ViewOptions,
     }
   }
   const sections: SectionView[] = [
+    nextSection(data, config, o),
     needsSection(data.needs, config, o, stale, answered),
-    lanesSection(data.lanes, config, o, stale, data.codex?.data ?? []),
+    lanesSection(data.lanes, config, o, stale, data.codex?.data ?? [], data.flow),
   ]
+  const groups = campaigns(data)
+  if (groups.length > 0) sections.push(campaignsSection(groups))
+  const tree = depTree(data.lanes.data)
+  if (tree.length > 0) sections.push(depsSection(tree, config))
   if (data.services) sections.push(servicesSection(data.services, o, stale))
   if (data.mergeLine) sections.push(mergeLineSection(data.mergeLine, data.lanes.data, o, stale))
   if (data.codex) sections.push(codexSection(data.codex, o, stale))

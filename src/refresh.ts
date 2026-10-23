@@ -2,7 +2,9 @@
 // lists, and the health URLs the profile lists. It never calls a language model.
 
 import { DEFAULTS } from './config.ts'
+import { fetchMerged, updateFlow } from './flow.ts'
 import { parseCodexList, parseMergeLine } from './parsers.ts'
+import { attachSessions, parseSessions } from './sessions.ts'
 import { refState } from './sources/github.ts'
 import { SOURCES } from './sources/index.ts'
 import { DATA_VERSION, SourceError } from './types.ts'
@@ -229,7 +231,16 @@ export async function refreshProfile(
     profile.codexCloud?.enabled ? fetchCodex(host, profile.codexCloud, prev?.codex) : Promise.resolve(null),
     profile.services && profile.services.length > 0 ? fetchServices(host, profile.services, prev?.services) : Promise.resolve(null),
   ])
-  return { dataVersion: DATA_VERSION, profile: name, generatedAt: host.now(), lanes, needs, mergeLine, codex, services }
+  const now = host.now()
+  if (profile.sessions && host.recentJson) {
+    try {
+      lanes.data = attachSessions(lanes.data, parseSessions(await host.recentJson(profile.sessions.dir, profile.sessions.days ?? 3)))
+    } catch {
+      // no session records here: lanes just have no "ask its session" button
+    }
+  }
+  const flow = await fetchMerged(host, profile, updateFlow(prev?.flow, prev?.lanes.data ?? [], lanes.data, now), now)
+  return { dataVersion: DATA_VERSION, profile: name, generatedAt: now, lanes, needs, mergeLine, codex, services, flow }
 }
 
 export { empty as emptySection }
