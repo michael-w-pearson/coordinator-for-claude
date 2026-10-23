@@ -1,17 +1,19 @@
 // Defaults, loading and validation of config.json. Pure: the caller reads the file.
 
+import { ramp } from './palette.ts'
 import { COLORS, CONFIG_VERSION, LANE_STATUSES } from './types.ts'
-import type { Config, ProfileConfig, Rule, SourceConfig, StageDef } from './types.ts'
+import type { Color, Config, ProfileConfig, Rule, SourceConfig, StageDef } from './types.ts'
 import { asRecord, isString, parseJson } from './util.ts'
 import type { Rec } from './util.ts'
 
+const STAGE_COLORS = ramp(6) as [Color, Color, Color, Color, Color, Color]
 export const DEFAULT_STAGES: StageDef[] = [
-  { id: 'plan', label: 'plan', description: 'being planned, nothing built yet', color: 'white' },
-  { id: 'build', label: 'build', description: 'being written', color: 'blue' },
-  { id: 'verify', label: 'verify', description: 'tests and checks running', color: 'magenta' },
-  { id: 'review', label: 'review', description: 'waiting on a reviewer or a fix', color: 'yellow' },
-  { id: 'merge-line', label: 'merge-line', description: 'approved, queued to merge', color: 'cyan' },
-  { id: 'merged', label: 'merged', description: 'done, in the main branch', color: 'green' },
+  { id: 'plan', label: 'plan', description: 'being planned, nothing built yet', color: STAGE_COLORS[0] },
+  { id: 'build', label: 'build', description: 'being written', color: STAGE_COLORS[1] },
+  { id: 'verify', label: 'verify', description: 'tests and checks running', color: STAGE_COLORS[2] },
+  { id: 'review', label: 'review', description: 'waiting on a reviewer or a fix', color: STAGE_COLORS[3] },
+  { id: 'merge-line', label: 'merge-line', description: 'approved, queued to merge', color: STAGE_COLORS[4] },
+  { id: 'merged', label: 'merged', description: 'done, in the main branch', color: STAGE_COLORS[5] },
 ]
 
 /** First matching rule wins. Written as data so a user can replace the list. */
@@ -210,9 +212,10 @@ function stagesOf(root: Rec, problems: Problem[]): StageDef[] {
   root.stages.forEach((raw, i) => {
     const s = asRecord(raw)
     if (!s || !isString(s.id) || !s.id) { problems.push({ path: `stages[${i}].id`, message: 'needs an id', fatal: true }); return }
-    const color = isString(s.color) && (COLORS as readonly string[]).includes(s.color) ? (s.color as StageDef['color']) : 'cyan'
+    const okColor = isString(s.color) && ((COLORS as readonly string[]).includes(s.color) || /^#[0-9a-f]{6}$/i.test(s.color))
+    const color = okColor ? (s.color as StageDef['color']) : 'cyan'
     if (s.color !== undefined && color !== s.color) {
-      problems.push({ path: `stages[${i}].color`, message: `must be one of: ${COLORS.join(', ')}`, fatal: true })
+      problems.push({ path: `stages[${i}].color`, message: `must be a colour name (${COLORS.join(', ')}) or a hex colour such as #3fa7d6`, fatal: true })
     }
     stages.push({ id: s.id, label: isString(s.label) ? s.label : s.id, description: isString(s.description) ? s.description : '', color })
   })

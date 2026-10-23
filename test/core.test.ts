@@ -147,3 +147,13 @@ test('plan stage: docs-only files or a plan title put a pull request in plan, co
   expect(place(byNumber(14783))?.stage).toBe('build') // recorded draft code PR
   expect(place({ ...ready, autoMergeRequest: { enabledBy: { login: 'x' } } })?.stage).toBe('merge-line')
 })
+
+test('default stage colours are one ramp of distinct hex steps, and a stage may set its own hex', async () => {
+  const colors = loadConfig(JSON.stringify({ configVersion: 1, profiles: { p: profile } })).config?.stages?.map(s => s.color) ?? []
+  expect(colors.length).toBe(6)
+  expect(colors.every(c => /^#[0-9a-f]{6}$/.test(c))).toBe(true)
+  expect(new Set(colors).size).toBe(6)
+  const custom = loadConfig(JSON.stringify({ configVersion: 1, profiles: { p: profile }, stages: [{ id: 'a', color: '#112233' }, { id: 'b', color: 'red' }] }))
+  expect(custom.config?.stages?.map(s => s.color)).toEqual(['#112233', 'red'])
+  expect(loadConfig(JSON.stringify({ configVersion: 1, profiles: { p: profile }, stages: [{ id: 'a', color: '#12' }] })).config).toBeNull()
+})

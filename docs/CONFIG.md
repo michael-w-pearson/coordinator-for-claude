@@ -27,7 +27,7 @@ The file has a version number. If your file is older or newer than the program, 
 | `statusColors` | Colour of the dot for `moving`, `waiting`, `blocked`, `done`. | green, yellow, red, gray |
 | `profiles` | One entry per band. | required |
 
-Colours: `green`, `yellow`, `red`, `cyan`, `blue`, `magenta`, `gray`, `white`. The default stages use six different ones: plan white, build blue, verify magenta, review yellow, merge-line cyan, merged green.
+Colours: `green`, `yellow`, `red`, `cyan`, `blue`, `magenta`, `gray`, `white`. The default stages use one ramp from violet through blue and teal to green (plan to merged), with lightness rising so neighbours differ for colour-blind viewers. A stage colour can also be a hex value such as `#3fa7d6`.
 
 ## Stages and words
 
