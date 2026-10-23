@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: done
 owner: michael
 related: [2026-10-22-public-rework.md]
 ---
