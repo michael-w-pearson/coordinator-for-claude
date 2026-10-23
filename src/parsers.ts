@@ -1,7 +1,7 @@
 // Parsers for text that other tools print. Pure, so tests can feed them recorded output.
 
 import type { CodexTask, MergeLineData, MergeLineEntry } from './types.ts'
-import { truncate } from './util.ts'
+import { asRecord, isString, truncate } from './util.ts'
 
 /**
  * The merge-line text contract: one "Head: #N" line, then "PR #N: note" lines.
@@ -18,6 +18,32 @@ export function parseMergeLine(text: string): MergeLineData | null {
     if (p) entries.push({ n: p[1] ?? '', note: p[2] ?? '' })
   }
   return head === null && entries.length === 0 ? null : { head, entries }
+}
+
+export type StatusFile = { data: MergeLineData; at: number }
+
+/**
+ * A merge-line snapshot file: { generated_at, head, over_cap, prs: [{ number, set, blocker, owner, reason }] }.
+ * Returns the data and the time it was written, or the reason it cannot be used.
+ */
+export function parseStatusFile(text: string): StatusFile | string {
+  let doc: unknown
+  try { doc = JSON.parse(text) } catch (err) { return `not valid JSON (${err instanceof Error ? err.message : String(err)})` }
+  const root = asRecord(doc)
+  const at = isString(root?.generated_at) ? Date.parse(root.generated_at) : NaN
+  if (!root || Number.isNaN(at)) return 'has no readable generated_at'
+  if (!Array.isArray(root.prs)) return 'has no prs list'
+  const entries: MergeLineEntry[] = []
+  for (const raw of root.prs) {
+    const pr = asRecord(raw)
+    if (!pr || typeof pr.number !== 'number') continue
+    const text = (v: unknown): string => (isString(v) ? v : '')
+    // The note reads like the text contract: a queue member's reason, a waiting PR's blocker, a backlog PR's blocker.
+    const note = pr.set === 'QUEUE' ? text(pr.reason) : [pr.set === 'WAITING' && text(pr.owner) ? `[${text(pr.owner)}]` : '', text(pr.blocker)].filter(Boolean).join(' ')
+    entries.push({ n: String(pr.number), note })
+  }
+  const head = typeof root.head === 'number' ? String(root.head) : null
+  return { data: { head, entries }, at }
 }
 
 /** Where a PR sits in the line, in plain words. Never "?". */

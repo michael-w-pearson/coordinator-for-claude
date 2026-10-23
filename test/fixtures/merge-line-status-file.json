@@ -1,0 +1,12 @@
+{
+ "repo": "example/app",
+ "generated_at": "2026-10-23T14:00:00+00:00",
+ "head": 5,
+ "over_cap": "Over cap: 4 open, cap 3",
+ "prs": [
+  {"number": 3, "set": "WAITING", "blocker": "unresolved threads", "owner": "builder", "reason": ""},
+  {"number": 5, "set": "QUEUE", "blocker": "", "owner": "", "reason": "head"},
+  {"number": 7, "set": "QUEUE", "blocker": "", "owner": "", "reason": "behind head"},
+  {"number": 9, "set": "BACKLOG", "blocker": "draft", "owner": "", "reason": ""}
+ ]
+}

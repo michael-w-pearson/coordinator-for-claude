@@ -159,6 +159,10 @@ export type MergeLineConfig = {
   timeoutSeconds?: number
   /** Only PRs of this repo name are listed under the section. */
   repo?: string
+  /** A JSON snapshot of the line that another tool keeps up to date. Read first: no GitHub calls. */
+  file?: string
+  /** The snapshot counts as stale after this many minutes. Default 15. Then `command` runs. */
+  maxAgeMinutes?: number
 }
 export type CodexConfig = { enabled: boolean; command?: string[] }
 export type ServiceConfig = { name: string; url: string; allowRemote?: boolean }

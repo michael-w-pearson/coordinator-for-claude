@@ -3,7 +3,7 @@
 
 import { DEFAULTS } from './config.ts'
 import { fetchMerged, updateFlow } from './flow.ts'
-import { parseCodexList, parseMergeLine } from './parsers.ts'
+import { parseCodexList, parseMergeLine, parseStatusFile } from './parsers.ts'
 import { attachSessions, parseSessions } from './sessions.ts'
 import { refState } from './sources/github.ts'
 import { SOURCES } from './sources/index.ts'
@@ -147,6 +147,18 @@ export async function fetchMergeLine(
   force = false,
 ): Promise<SectionRecord<MergeLineData>> {
   const now = host.now()
+  // A snapshot another tool keeps is free to read, so it is read on every pass and wins while it is fresh.
+  let fileNote = ''
+  if (config.file) {
+    try {
+      const parsed = parseStatusFile(await host.readFile(config.file))
+      if (typeof parsed === 'string') fileNote = `snapshot ${parsed}`
+      else if (now - parsed.at <= (config.maxAgeMinutes ?? DEFAULTS.mergeLineFileMaxAgeMinutes) * 60_000) return ok(parsed.data, parsed.at)
+      else fileNote = `snapshot is ${Math.floor((now - parsed.at) / 60_000)} min old`
+    } catch (err) {
+      fileNote = `no snapshot (${reasonOf(err)})`
+    }
+  }
   const ttl = (config.ttlMinutes ?? DEFAULTS.mergeLineTtlMinutes) * 60_000
   if (!force && prev) {
     if (prev.error ? now < (prev.retryAt ?? 0) : prev.fetchedAt !== null && now - prev.fetchedAt < ttl) return prev
@@ -166,9 +178,9 @@ export async function fetchMergeLine(
     const parsed = parseMergeLine(result.stdout)
     if (parsed) return ok(parsed, now)
     const why = firstLine(result.stderr) || (result.stdout.trim() ? `unreadable output: ${firstLine(result.stdout, 60)}` : 'it printed nothing')
-    return fail(`merge line command gave no result (${why})`)
+    return fail(`merge line command gave no result (${why})${fileNote ? `; ${fileNote}` : ''}`)
   } catch (err) {
-    return fail(`merge line command could not run: ${reasonOf(err)}`)
+    return fail(`merge line command could not run: ${reasonOf(err)}${fileNote ? `; ${fileNote}` : ''}`)
   }
 }
 

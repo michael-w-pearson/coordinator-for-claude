@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { DEFAULT_RULES, loadConfig, pickProfile } from '../src/config.ts'
-import { codexLaneLine, mergePosition, parseCodexList, parseMergeLine } from '../src/parsers.ts'
+import { codexLaneLine, mergePosition, parseCodexList, parseMergeLine, parseStatusFile } from '../src/parsers.ts'
 import { withSince, fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, mergeLanes, refreshProfile } from '../src/refresh.ts'
 import { applyRules, campaignOf, dependsOn, factsOf, failingNames, reviewersOf } from '../src/rules.ts'
 import { badge } from '../src/state.ts'
@@ -201,4 +201,43 @@ test('a lane keeps its time in stage until the stage changes', async () => {
   expect(first[0]?.since).toBe(1000)
   expect(withSince([lane], first, 5000)[0]?.since).toBe(1000)
   expect(withSince([{ ...lane, stage: 'review' }], first, 5000)[0]?.since).toBe(5000)
+})
+
+test('merge line snapshot file: a fresh file wins with no command, a stale, missing or broken one falls back to the command', async () => {
+  const file = '/state/status.json'
+  const good = fixture('merge-line-status-file.json')
+  const at = Date.parse(JSON.parse(good).generated_at)
+  const config = { command: ['status-tool'], file }
+  const commandReply = (argv: readonly string[]) => (argv[0] === 'status-tool' ? okRun(fixture('merge-line-status.txt')) : undefined)
+
+  const fresh = { ...fakeHost(commandReply, { [file]: good }), now: () => at + 5 * 60_000 }
+  const rec = await fetchMergeLine(fresh, config, null)
+  expect(fresh.calls.length).toBe(0)
+  expect(rec.error).toBeUndefined()
+  expect(rec.fetchedAt).toBe(at) // the age is the snapshot's own
+  expect(rec.data.head).toBe('5')
+  expect(rec.data.entries.map(e => `${e.n}:${e.note}`)).toEqual(['3:[builder] unresolved threads', '5:head', '7:behind head', '9:draft'])
+  expect(mergePosition(rec.data, '3')).toBe('review threads')
+  expect(mergePosition(rec.data, '7')).toBe('behind head')
+  // Read again on every pass: nothing is cached behind the ttl.
+  expect((await fetchMergeLine(fresh, config, rec)).data.head).toBe('5')
+
+  const stale = { ...fakeHost(commandReply, { [file]: good }), now: () => at + 20 * 60_000 }
+  expect((await fetchMergeLine(stale, config, null)).data.head).toBe('421')
+  expect(stale.calls.length).toBe(1)
+  const looser = { ...fakeHost(commandReply, { [file]: good }), now: () => at + 20 * 60_000 }
+  expect((await fetchMergeLine(looser, { ...config, maxAgeMinutes: 30 }, null)).data.head).toBe('5')
+  expect(looser.calls.length).toBe(0)
+
+  const missing = fakeHost(commandReply)
+  expect((await fetchMergeLine(missing, config, null)).data.head).toBe('421')
+  const broken = fakeHost(commandReply, { [file]: '{"generated_at": ' })
+  expect((await fetchMergeLine(broken, config, null)).data.head).toBe('421')
+  expect(parseStatusFile('{}')).toBe('has no readable generated_at')
+
+  // No snapshot and the command fails: the reason names both.
+  const both = fakeHost(() => ({ exitCode: 1, stdout: '', stderr: 'rate limited' }))
+  const err = await fetchMergeLine(both, config, null)
+  expect(err.error).toContain('rate limited')
+  expect(err.error).toContain('no snapshot')
 })

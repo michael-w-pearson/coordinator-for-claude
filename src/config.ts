@@ -46,6 +46,7 @@ export const DEFAULTS = {
   mergeLineTtlMinutes: 30, // the status command is expensive: hundreds of GitHub calls per run
   maxBackoffMinutes: 60,
   mergedTtlMinutes: 60,
+  mergeLineFileMaxAgeMinutes: 15,
   statusColors: { moving: 'green', waiting: 'yellow', blocked: 'red', done: 'gray' } as const,
   needsLabel: 'needs-me',
   githubLimit: 30,
