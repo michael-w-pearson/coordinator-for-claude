@@ -23,6 +23,7 @@ function world(on: Hooks, files: Record<string, string>, calls: string[][] = [])
   mock.store(on as never)
   const clock = mock.clock(on as never, { now: Date.now() })
   on('command.register', (() => ({ value: { command: 'band' } })) as never)
+  on('ui.status', (() => ({ value: undefined })) as never)
   on('ui.open', (() => ({ value: { isPlaced: true } })) as never)
   on('session.id', (() => ({ value: 'session-1' })) as never)
   on('session.cwd', (() => ({ value: '/work/app' })) as never)
@@ -55,7 +56,7 @@ test('with a config the pane draws lanes from recorded GitHub output, on every s
   await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
-    expect(await ui.find({ type: 'Text', text: /L A N E S/ })).toBeTruthy()
+    expect(await ui.find({ type: 'Text', text: /^Lanes$/ })).toBeTruthy()
     expect(await ui.find({ type: 'Text', text: /ok · now/ })).toBeTruthy()
     await ui.unmount()
   }

@@ -4,7 +4,6 @@ import type { EngineInterface, Register } from 'claude-code'
 import { DEFAULT_STAGES, loadConfig, pickProfile } from '../src/config.ts'
 import { checkData, emptyData, refreshMs } from '../src/data.ts'
 import { fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, fetchServices } from '../src/refresh.ts'
-import { barWidths } from '../src/text.ts'
 import { buildStarterConfig, parseGithubRemote, STARTER_OVERRIDE } from '../src/starter.ts'
 import type { BandData, Config, Host } from '../src/types.ts'
 import { firstLine } from '../src/util.ts'
@@ -221,7 +220,7 @@ async function tick($: EngineInterface, force = false): Promise<void> {
 
 // ---- Drawing --------------------------------------------------------------
 
-const spaced = (title: string): string => title.toUpperCase().split('').join(' ').replace(/ {3,}/g, '   ')
+const titleCase = (title: string): string => title.charAt(0).toUpperCase() + title.slice(1)
 
 type Act = NonNullable<Seg['action']>
 
@@ -236,23 +235,28 @@ function Segments(props: { ui: Ui; line: Line; onAct: (a: Act) => void; id: stri
           return <Button key={key} label={s.text} onPress={() => props.onAct(a)} />
         }
         if (s.href) return <Link key={key} href={s.href}>{s.text}</Link>
+        if (s.block) {
+          const fill = s.dim ? 'gray' : (s.color ?? 'gray')
+          return <Box key={key} width={2} marginRight={1} backgroundColor={fill}><Text> </Text></Box>
+        }
         return <Text key={key} color={s.color} bold={s.bold} dimColor={s.dim}>{s.text}</Text>
       })}
     </Box>
   )
 }
 
-function Section(props: { ui: Ui; view: SectionView; columns: number; collapsed: boolean; onToggle: () => void; onAct: (a: Act) => void }) {
+function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggle: () => void; onAct: (a: Act) => void }) {
   const { Box, Button, Text } = props.ui
   const v = props.view
-  const inner = Math.max(20, props.columns - 4)
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={v.color} paddingX={1}>
-      <Button key={`toggle-${v.id}`} plain onPress={props.onToggle}>
-        <Text bold color={v.color}>{spaced(v.title)}</Text>
-        <Text dimColor>{props.collapsed ? '  >' : '  ⌄'}</Text>
-        <Text color={v.noteColor}>{`   ${v.note}`}</Text>
-      </Button>
+    <Box flexDirection="column" borderStyle="round" borderColor={v.state === 'error' ? 'red' : 'gray'} paddingX={1}>
+      <Box flexDirection="row" justifyContent="space-between">
+        <Button key={`toggle-${v.id}`} plain onPress={props.onToggle}>
+          <Text bold>{titleCase(v.title)}</Text>
+          <Text dimColor>{props.collapsed ? ' >' : ' ⌄'}</Text>
+        </Button>
+        <Text color={v.noteColor}>{v.note}</Text>
+      </Box>
       {props.collapsed ? null : (
         <Box flexDirection="column">
           {v.head ? (
@@ -262,8 +266,8 @@ function Section(props: { ui: Ui; view: SectionView; columns: number; collapsed:
             </Box>
           ) : null}
           {v.bar ? (
-            <Box flexDirection="row">
-              {barWidths(v.bar, inner).map((w, i) => <Text key={`${v.id}-bar-${i}`} color={v.bar?.[i]?.color}>{'█'.repeat(w)}</Text>)}
+            <Box flexDirection="row" width="100%" height={1} marginY={1}>
+              {v.bar.map((p, i) => <Box key={`${v.id}-bar-${i}`} flexGrow={p.n} backgroundColor={p.color}><Text> </Text></Box>)}
             </Box>
           ) : null}
           {(v.legend ?? []).map(row => (
@@ -331,12 +335,11 @@ export const register: Register = on => {
       if (a.kind === 'choose') choose(a.needId, a.option)
       else void tick($, true).catch(() => {})
     }
-    const columns = (e as { props?: { bodyColumns?: number } }).props?.bodyColumns ?? 64
     return (
       <Box flexDirection="column">
         {(l.problems.length > 0) ? <Text color="yellow">{l.problems.join(' | ')}</Text> : null}
         {view.sections.map(s => (
-          <Section key={s.id} ui={ui} view={s} columns={columns} collapsed={!!collapsed[s.id]} onToggle={toggle(s.id)} onAct={act} />
+          <Section key={s.id} ui={ui} view={s} collapsed={!!collapsed[s.id]} onToggle={toggle(s.id)} onAct={act} />
         ))}
       </Box>
     )

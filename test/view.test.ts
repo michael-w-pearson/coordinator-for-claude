@@ -59,7 +59,7 @@ test('the pane text shows every section with its age and no bare question mark',
   for (const word of ['N E E D S   Y O U', 'L A N E S', 'S E R V I C E S', 'M E R G E   L I N E', 'C O D E X   C L O U D']) expect(out).toContain(word)
   expect(out).toContain('ok · now')
   expect(out).toContain('Head #421 · 4 in line')
-  expect(out).toContain('Bar = build → verify → review → merge-line → merged')
+  expect(out).toContain('■ merge-line')
   expect(out).toContain('waiting on a reviewer or a fix') // description of the current stage
   expect(out).toContain('worker (down)')
   expect(out).not.toMatch(/(^|\s)\?(\s|$)/)
@@ -113,7 +113,7 @@ test('stages, descriptions, colours and status colours come from config', async 
   const view = buildView(data, cfg, { now: NOW, title: 'T' })
   const out = renderText(view)
   expect(out).toContain('▰▰▱ doing · someone is on it')
-  expect(out).toContain('Bar = idea → doing → shipped')
+  expect(out).toContain('■ shipped')
   const dot = view.sections.find(s => s.id === 'lanes')!.lines[0]![0]!
   expect(dot.color).toBe('cyan')
   data.lanes.data[0]!.stage = 'build'

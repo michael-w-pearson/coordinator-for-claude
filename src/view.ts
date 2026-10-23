@@ -14,6 +14,8 @@ export type Seg = {
   bold?: boolean
   dim?: boolean
   href?: string
+  /** Draw as a small filled block (a stage of the pipeline strip) instead of text. */
+  block?: boolean
   /** A button. The host decides what pressing it does. */
   action?: { kind: 'choose'; needId: string; option: number } | { kind: 'refresh' }
 }
@@ -68,6 +70,7 @@ export function strip(stages: readonly StageDef[], stageId: string, failed: bool
   return stages.map((s, i) => {
     const kind = i < at ? 'done' : i === at ? (failed ? 'failed' : at === stages.length - 1 ? 'done' : 'current') : 'todo'
     return seg(kind === 'todo' ? '▱' : '▰', {
+      block: true,
       ...(kind === 'current' ? { color: s.color } : kind === 'failed' ? { color: 'red' as Color } : kind === 'done' ? { color: 'green' as Color } : {}),
       ...(kind === 'todo' || kind === 'done' ? { dim: true } : {}),
     })
@@ -155,7 +158,6 @@ function lanesSection(rec: SectionRecord<Lane[]>, config: Config, o: ViewOptions
       lines.push([seg(`  ✕ ${lane.blockedBy}`, { color: 'red', dim: true })])
     }
   })
-  if (lanes.length > 0) lines.push(dim(`Bar = ${stages.map(s => s.label).join(' → ')}`))
   const hint: Seg = minMoving > 0 && lanes.length > 0 && moving < minMoving
     ? (() => {
       const next = refillCandidates(lanes)
