@@ -27,7 +27,7 @@ When several people, or several Claude sessions, work at once, the hard part is 
 
 ![The Claude Coordinator panel showing the Next line, Needs you, Lanes and Flow sections](docs/pane-screenshot.png)
 
-The capture is real output of `coordinator show` on a public repository (`cli/cli`, lanes from the label `external`, needs from the label `bug`). It is the same text the pane draws. In Claude Code the pane adds colour, a thin stacked bar, and clickable buttons.
+The screenshot is the real pane, drawn from made-up sample lanes so no private repository shows. In Claude Code it looks exactly like this: colour, a thin stacked bar, and clickable buttons. `coordinator show` prints the same content as plain text, which is handy in a terminal or a bug report.
 
 ## Install
 
