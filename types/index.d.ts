@@ -91,6 +91,8 @@ export type RuleWhen = {
   merged?: boolean
   closed?: boolean
   label?: string
+  /** True when the pull request is a plan: only plan files change, or the title says so. */
+  plan?: boolean
 }
 
 export type GithubSourceConfig = {
@@ -105,6 +107,10 @@ export type GithubSourceConfig = {
   /** Issues and PRs with this label appear under NEEDS YOU. */
   needsLabel?: string
   rules?: Rule[]
+  /** A pull request whose changed files all sit under these folders counts as a plan. */
+  planPaths?: string[]
+  /** A pull request whose title matches this expression (case-insensitive) counts as a plan. */
+  planTitle?: string
 }
 export type FileSourceConfig = {
   type: 'file'

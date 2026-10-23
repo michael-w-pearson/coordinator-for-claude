@@ -1,14 +1,15 @@
 // Reference source: GitHub through the `gh` command-line tool. Read-only.
 // Every call is a `gh pr list`, `gh pr view`, `gh issue view` or `gh search`. Nothing here writes to GitHub.
 
-import { DEFAULT_RULES, DEFAULTS } from '../config.ts'
+import { DEFAULT_PLAN_PATHS, DEFAULT_PLAN_TITLE, DEFAULT_RULES, DEFAULTS } from '../config.ts'
 import { applyRules, describeFacts, factsOf } from '../rules.ts'
 import { SourceError } from '../types.ts'
 import type { GithubSourceConfig, Host, Lane, Need, Requirement, Source, SourceContext } from '../types.ts'
 import { asRecord, firstLine, isString, parseJson } from '../util.ts'
 import type { Rec } from '../util.ts'
 
-export const GH_FIELDS = 'number,title,url,isDraft,mergeStateStatus,statusCheckRollup,reviewDecision,autoMergeRequest,labels,updatedAt'
+// "files" comes back in the same call, so telling plans from code costs no extra request.
+export const GH_FIELDS = 'number,title,url,isDraft,mergeStateStatus,statusCheckRollup,reviewDecision,autoMergeRequest,labels,updatedAt,files'
 
 export const GH_REQUIREMENT: Requirement = { command: 'gh', install: 'https://cli.github.com (then run: gh auth login)' }
 
@@ -64,7 +65,10 @@ export const github: Source<GithubSourceConfig, Raw> = {
 
   toLane(raw, config): Lane | null {
     if (!isString(raw.title) || typeof raw.number !== 'number') return null
-    const facts = factsOf({ ...raw, state: 'OPEN' })
+    const facts = factsOf({ ...raw, state: 'OPEN' }, {
+      planPaths: config.planPaths ?? DEFAULT_PLAN_PATHS,
+      planTitle: new RegExp(config.planTitle ?? DEFAULT_PLAN_TITLE, 'i'),
+    })
     const placed = applyRules(config.rules ?? DEFAULT_RULES, facts)
     if (!placed) return null
     return {

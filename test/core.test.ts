@@ -134,3 +134,16 @@ test('profile choice: one profile without rules always fits; rules narrow others
   expect(pickProfile(two, { id: 'q', cwd: '/y' })).toBe(null)
   expect(pickProfile(two, { id: 'q', cwd: '/y' }, ['b'])).toBe('b')
 })
+
+test('plan stage: docs-only files or a plan title put a pull request in plan, code stays in build and review', async () => {
+  const plan = { planPaths: ['wiki/plans/', 'wiki/decisions/'], planTitle: /^(plan(\([^)]*\))?:|docs\(plans\))/i }
+  const place = (row: Record<string, unknown>) => applyRules(DEFAULT_RULES, factsOf({ ...row, state: 'OPEN' }, plan))
+  const docs = [{ path: 'wiki/plans/2026-10-22-x.md' }, { path: 'wiki/decisions/y.md' }]
+  const ready = { ...byNumber(14727), files: docs } // recorded ready PR with its files swapped for plan files
+  expect(place(ready)).toEqual({ stage: 'plan', status: 'waiting', blockedBy: 'plan in review' })
+  expect(place({ ...ready, isDraft: true })).toEqual({ stage: 'plan', status: 'moving' })
+  expect(place({ ...byNumber(14727), title: 'plan(band): add a plan stage' })?.stage).toBe('plan')
+  expect(place({ ...ready, files: [...docs, { path: 'src/a.ts' }] })?.stage).toBe('review') // one code file: not a plan
+  expect(place(byNumber(14783))?.stage).toBe('build') // recorded draft code PR
+  expect(place({ ...ready, autoMergeRequest: { enabledBy: { login: 'x' } } })?.stage).toBe('merge-line')
+})

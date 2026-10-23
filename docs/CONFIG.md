@@ -23,11 +23,11 @@ The file has a version number. If your file is older or newer than the program, 
 | `refresh.intervalMinutes` | How often to fetch. | `5` |
 | `refresh.staleAfterMinutes` | A section shows `stale` after this long without a good fetch. | `30` |
 | `minMoving` | Show a hint when fewer lanes than this are moving. `0` turns the hint off. | `3` |
-| `stages` | The pipeline stages. See below. | build, verify, review, merge-line, merged |
+| `stages` | The pipeline stages. See below. | plan, build, verify, review, merge-line, merged |
 | `statusColors` | Colour of the dot for `moving`, `waiting`, `blocked`, `done`. | green, yellow, red, gray |
 | `profiles` | One entry per band. | required |
 
-Colours: `green`, `yellow`, `red`, `cyan`, `blue`, `magenta`, `gray`, `white`. The default stages use five different ones: build blue, verify magenta, review yellow, merge-line cyan, merged green.
+Colours: `green`, `yellow`, `red`, `cyan`, `blue`, `magenta`, `gray`, `white`. The default stages use six different ones: plan white, build blue, verify magenta, review yellow, merge-line cyan, merged green.
 
 ## Stages and words
 
@@ -110,6 +110,7 @@ Every lane from the `github` source gets its stage and status from the first rul
 | When | Stage | Status | Reason shown |
 | --- | --- | --- | --- |
 | merged | merged | done | |
+| a plan (see below) | plan | blocked, moving or waiting | failing checks, changes requested, or "plan in review"; with auto-merge on it goes to merge-line |
 | draft | build | moving | |
 | a check failed | review | blocked | N check(s) failing |
 | changes requested | review | blocked | changes requested |
@@ -118,7 +119,9 @@ Every lane from the `github` source gets its stage and status from the first rul
 | approved | merge-line | waiting | ready to merge |
 | anything else | review | waiting | awaiting review |
 
-To replace it, set `rules` on the source. A rule is `{ "when": { ... }, "stage": "...", "status": "...", "blockedBy": "..." }`. `when` can use `draft`, `failing`, `pending`, `changesRequested`, `approved`, `autoMerge`, `merged`, `closed` (each `true` or `false`) and `label` (a label name). An empty `when` matches everything, so put it last. `blockedBy` may contain `{failing}` or `{pending}`, which become counts.
+A pull request is a **plan** when every changed file sits under `planPaths` (default `wiki/plans/`, `wiki/decisions/`, `docs/plans/`, `docs/decisions/`) or its title matches `planTitle` (default: starts with `plan:`, `plan(scope):` or `docs(plans)`). Set either on the `github` source. The file list comes back in the same `gh pr list` call, so plans cost no extra request. In your own rules, `plan: true` matches these pull requests.
+
+To replace it, set `rules` on the source. A rule is `{ "when": { ... }, "stage": "...", "status": "...", "blockedBy": "..." }`. `when` can use `draft`, `failing`, `pending`, `changesRequested`, `approved`, `autoMerge`, `merged`, `closed`, `plan` (each `true` or `false`) and `label` (a label name). An empty `when` matches everything, so put it last. `blockedBy` may contain `{failing}` or `{pending}`, which become counts.
 
 ```json
 "rules": [

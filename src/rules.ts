@@ -13,14 +13,18 @@ export type Facts = {
   autoMerge: boolean
   merged: boolean
   closed: boolean
+  /** Plan, not code: only plan files changed, or the title says plan. */
+  plan: boolean
   labels: string[]
 }
+
+export type PlanOptions = { planPaths: readonly string[]; planTitle: RegExp }
 
 const FAILED = new Set(['FAILURE', 'FAILED', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE'])
 const RUNNING = new Set(['IN_PROGRESS', 'QUEUED', 'PENDING', 'WAITING', 'REQUESTED', 'EXPECTED'])
 
 /** Facts from one `gh pr list/view --json` row. Handles CheckRun rows and StatusContext rows. */
-export function factsOf(row: Rec): Facts {
+export function factsOf(row: Rec, plan?: PlanOptions): Facts {
   const checks = Array.isArray(row.statusCheckRollup) ? row.statusCheckRollup : []
   let failing = 0
   let pending = 0
@@ -37,6 +41,9 @@ export function factsOf(row: Rec): Facts {
   const labels = Array.isArray(row.labels)
     ? row.labels.flatMap(l => (isString(l) ? [l] : isString(asRecord(l)?.name) ? [String(asRecord(l)?.name)] : []))
     : []
+  const paths = Array.isArray(row.files) ? row.files.flatMap(f => (isString(asRecord(f)?.path) ? [String(asRecord(f)?.path)] : [])) : []
+  const onlyPlanFiles = !!plan && paths.length > 0 && paths.every(p => plan.planPaths.some(dir => p.startsWith(dir)))
+  const planTitle = !!plan && isString(row.title) && plan.planTitle.test(row.title)
   return {
     draft: row.isDraft === true,
     failing,
@@ -46,6 +53,7 @@ export function factsOf(row: Rec): Facts {
     autoMerge: row.autoMergeRequest !== null && row.autoMergeRequest !== undefined,
     merged: state === 'MERGED',
     closed: state === 'CLOSED',
+    plan: onlyPlanFiles || planTitle,
     labels,
   }
 }
@@ -59,6 +67,7 @@ function holds(when: RuleWhen, facts: Facts): boolean {
   if (when.autoMerge !== undefined && when.autoMerge !== facts.autoMerge) return false
   if (when.merged !== undefined && when.merged !== facts.merged) return false
   if (when.closed !== undefined && when.closed !== facts.closed) return false
+  if (when.plan !== undefined && when.plan !== facts.plan) return false
   if (when.label !== undefined && !facts.labels.includes(when.label)) return false
   return true
 }

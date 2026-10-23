@@ -496,7 +496,33 @@
   ],
   "title": "release download: add --verify to check immutability and build provenance before downloading",
   "updatedAt": "2026-10-21T18:17:03Z",
-  "url": "https://github.com/cli/cli/pull/14783"
+  "url": "https://github.com/cli/cli/pull/14783",
+  "files": [
+   {
+    "path": "pkg/cmd/release/download/download.go",
+    "additions": 209,
+    "deletions": 21,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/release/download/download_test.go",
+    "additions": 1,
+    "deletions": 1,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/release/download/provenance.go",
+    "additions": 458,
+    "deletions": 0,
+    "changeType": "ADDED"
+   },
+   {
+    "path": "pkg/cmd/release/download/provenance_test.go",
+    "additions": 629,
+    "deletions": 0,
+    "changeType": "ADDED"
+   }
+  ]
  },
  {
   "autoMergeRequest": null,
@@ -662,7 +688,21 @@
   ],
   "title": "fix(issue create): resolve --type before creating the issue",
   "updatedAt": "2026-10-22T09:38:20Z",
-  "url": "https://github.com/cli/cli/pull/14727"
+  "url": "https://github.com/cli/cli/pull/14727",
+  "files": [
+   {
+    "path": "pkg/cmd/issue/create/create.go",
+    "additions": 12,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/issue/create/create_test.go",
+    "additions": 3,
+    "deletions": 7,
+    "changeType": "MODIFIED"
+   }
+  ]
  },
  {
   "autoMergeRequest": null,
@@ -854,7 +894,21 @@
   ],
   "title": "chore(deps): bump actions/create-github-app-token from 3.2.0 to 3.3.0",
   "updatedAt": "2026-10-21T15:14:40Z",
-  "url": "https://github.com/cli/cli/pull/14716"
+  "url": "https://github.com/cli/cli/pull/14716",
+  "files": [
+   {
+    "path": ".github/workflows/dependabot-triage.lock.yml",
+    "additions": 2,
+    "deletions": 2,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": ".github/workflows/issue-triage.lock.yml",
+    "additions": 2,
+    "deletions": 2,
+    "changeType": "MODIFIED"
+   }
+  ]
  },
  {
   "autoMergeRequest": null,
@@ -866,7 +920,63 @@
   "statusCheckRollup": [],
   "title": "Add --latest-pre-release and --pin flags to gh extension upgrade",
   "updatedAt": "2026-08-03T15:58:40Z",
-  "url": "https://github.com/cli/cli/pull/13982"
+  "url": "https://github.com/cli/cli/pull/13982",
+  "files": [
+   {
+    "path": "cmd/gen-docs/main.go",
+    "additions": 1,
+    "deletions": 1,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/extension/command.go",
+    "additions": 22,
+    "deletions": 4,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/extension/command_test.go",
+    "additions": 67,
+    "deletions": 14,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/extension/http.go",
+    "additions": 97,
+    "deletions": 2,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/extension/http_test.go",
+    "additions": 211,
+    "deletions": 0,
+    "changeType": "ADDED"
+   },
+   {
+    "path": "pkg/cmd/extension/manager.go",
+    "additions": 102,
+    "deletions": 30,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/extension/manager_test.go",
+    "additions": 348,
+    "deletions": 15,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/extensions/extension.go",
+    "additions": 13,
+    "deletions": 1,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/extensions/manager_mock.go",
+    "additions": 13,
+    "deletions": 13,
+    "changeType": "MODIFIED"
+   }
+  ]
  },
  {
   "autoMergeRequest": null,
@@ -1008,7 +1118,21 @@
   ],
   "title": "Warn instead of failing when issue fields can't be set",
   "updatedAt": "2026-09-01T16:56:17Z",
-  "url": "https://github.com/cli/cli/pull/13899"
+  "url": "https://github.com/cli/cli/pull/13899",
+  "files": [
+   {
+    "path": "pkg/cmd/issue/create/create.go",
+    "additions": 27,
+    "deletions": 14,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/issue/create/create_test.go",
+    "additions": 199,
+    "deletions": 4,
+    "changeType": "MODIFIED"
+   }
+  ]
  },
  {
   "autoMergeRequest": null,
@@ -1144,7 +1268,81 @@
   ],
   "title": "Fix project scope errors during issue creation",
   "updatedAt": "2026-08-30T16:02:48Z",
-  "url": "https://github.com/cli/cli/pull/14035"
+  "url": "https://github.com/cli/cli/pull/14035",
+  "files": [
+   {
+    "path": "api/client.go",
+    "additions": 148,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "api/client_test.go",
+    "additions": 72,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "api/queries_projects_v2.go",
+    "additions": 4,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "api/queries_projects_v2_test.go",
+    "additions": 41,
+    "deletions": 1,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "api/queries_repo.go",
+    "additions": 33,
+    "deletions": 22,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "api/queries_repo_test.go",
+    "additions": 54,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/issue/create/create_test.go",
+    "additions": 44,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/pr/create/create_test.go",
+    "additions": 40,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/pr/shared/params.go",
+    "additions": 12,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/pr/shared/params_test.go",
+    "additions": 37,
+    "deletions": 0,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/project/shared/queries/queries.go",
+    "additions": 31,
+    "deletions": 31,
+    "changeType": "MODIFIED"
+   },
+   {
+    "path": "pkg/cmd/project/shared/queries/queries_test.go",
+    "additions": 41,
+    "deletions": 18,
+    "changeType": "MODIFIED"
+   }
+  ]
  },
  {
   "autoMergeRequest": null,
@@ -1280,6 +1478,14 @@
   ],
   "title": "fix: preserve percent-encoded path in DisplayURL",
   "updatedAt": "2026-07-21T04:26:13Z",
-  "url": "https://github.com/cli/cli/pull/13788"
+  "url": "https://github.com/cli/cli/pull/13788",
+  "files": [
+   {
+    "path": "internal/text/text.go",
+    "additions": 6,
+    "deletions": 1,
+    "changeType": "MODIFIED"
+   }
+  ]
  }
 ]

@@ -6,6 +6,7 @@ import { asRecord, isString, parseJson } from './util.ts'
 import type { Rec } from './util.ts'
 
 export const DEFAULT_STAGES: StageDef[] = [
+  { id: 'plan', label: 'plan', description: 'being planned, nothing built yet', color: 'white' },
   { id: 'build', label: 'build', description: 'being written', color: 'blue' },
   { id: 'verify', label: 'verify', description: 'tests and checks running', color: 'magenta' },
   { id: 'review', label: 'review', description: 'waiting on a reviewer or a fix', color: 'yellow' },
@@ -16,6 +17,11 @@ export const DEFAULT_STAGES: StageDef[] = [
 /** First matching rule wins. Written as data so a user can replace the list. */
 export const DEFAULT_RULES: Rule[] = [
   { when: { merged: true }, stage: 'merged', status: 'done' },
+  { when: { plan: true, failing: true }, stage: 'plan', status: 'blocked', blockedBy: '{failing} check(s) failing' },
+  { when: { plan: true, changesRequested: true }, stage: 'plan', status: 'blocked', blockedBy: 'changes requested' },
+  { when: { plan: true, autoMerge: true }, stage: 'merge-line', status: 'moving' },
+  { when: { plan: true, draft: true }, stage: 'plan', status: 'moving' },
+  { when: { plan: true }, stage: 'plan', status: 'waiting', blockedBy: 'plan in review' },
   { when: { draft: true }, stage: 'build', status: 'moving' },
   { when: { failing: true }, stage: 'review', status: 'blocked', blockedBy: '{failing} check(s) failing' },
   { when: { changesRequested: true }, stage: 'review', status: 'blocked', blockedBy: 'changes requested' },
@@ -24,6 +30,11 @@ export const DEFAULT_RULES: Rule[] = [
   { when: { approved: true }, stage: 'merge-line', status: 'waiting', blockedBy: 'ready to merge' },
   { when: {}, stage: 'review', status: 'waiting', blockedBy: 'awaiting review' },
 ]
+
+/** Folders whose files count as plans. Replace with "planPaths" on the github source. */
+export const DEFAULT_PLAN_PATHS = ['wiki/plans/', 'wiki/decisions/', 'docs/plans/', 'docs/decisions/']
+/** Titles that count as plans: "plan: ...", "plan(scope): ...", "docs(plans): ...". */
+export const DEFAULT_PLAN_TITLE = '^(plan(\\([^)]*\\))?:|docs\\(plans\\))'
 
 export const DEFAULTS = {
   refreshMode: 'auto' as const,
@@ -82,6 +93,10 @@ function checkSource(raw: unknown, path: string, stageIds: Set<string>, problems
       problems.push({ path: `${path}`, message: 'set "label" (every open PR with it becomes a lane) or "author": "@me"', fatal: true })
     }
     if (src.rules !== undefined) checkRules(src.rules, `${path}.rules`, stageIds, problems)
+    if (src.planPaths !== undefined) stringList(src.planPaths, `${path}.planPaths`, problems)
+    if (src.planTitle !== undefined) {
+      try { new RegExp(String(src.planTitle), 'i') } catch { problems.push({ path: `${path}.planTitle`, message: 'is not a valid regular expression', fatal: true }) }
+    }
   } else if (src.type === 'file') {
     if (!isString(src.path) || !src.path) problems.push({ path: `${path}.path`, message: 'needs a file path', fatal: true })
   } else if (src.type === 'command') {

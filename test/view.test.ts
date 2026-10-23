@@ -223,7 +223,7 @@ test('the lanes card has a headline, a stacked bar, legend rows and a refresh bu
   const lanes = view.sections.find(s => s.id === 'lanes')!
   expect(lanes.head?.left[0]?.text).toMatch(/^\d+ of 8 moving$/)
   expect(lanes.bar?.reduce((n, p) => n + p.n, 0)).toBe(8)
-  expect(lanes.legend?.map(r => r.label)).toEqual(['build', 'verify', 'review', 'merge-line', 'merged'])
+  expect(lanes.legend?.map(r => r.label)).toEqual(['plan', 'build', 'verify', 'review', 'merge-line', 'merged'])
   expect(lanes.legend?.reduce((n, r) => n + Number(r.value), 0)).toBe(8)
   expect(lanes.footer?.some(s => s.action?.kind === 'refresh')).toBe(true)
   const out = renderText(view)

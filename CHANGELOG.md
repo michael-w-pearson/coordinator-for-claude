@@ -2,6 +2,11 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/). Config and data files carry their own version numbers (`configVersion`, `dataVersion`). A change to either is marked **schema**.
 
+## [Unreleased]
+
+### Added
+- A **plan** stage before build. A pull request counts as a plan when all its changed files are under `planPaths` or its title matches `planTitle`. Rules can test `plan`. The file list is part of the existing `gh pr list` call, so there is no extra request.
+
 ## [1.0.0] - 2026-10-22
 
 First public release. The project began as a private mod and was reworked so it holds nothing specific to one person or machine.
