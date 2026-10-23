@@ -319,7 +319,7 @@ async function runCommand($: EngineInterface, e: unknown) {
     await $.fs.write(`${h.home}/overrides/main.example.json`, STARTER_OVERRIDE)
     await tick($, true)
     ensureTimer($)
-    void $.ui.open({ id: PANE, title: paneTitle() })
+    void openPane($)
     return { text: `Wrote ${path}. Add the label "${cfg.profiles.main?.sources[0] && 'label' in cfg.profiles.main.sources[0] ? cfg.profiles.main.sources[0].label : 'band'}" to a pull request in ${spec.owner}/${spec.repo} and it appears as a lane. Needs the GitHub tool: /coordinator doctor` }
   }
 
@@ -352,7 +352,7 @@ async function runCommand($: EngineInterface, e: unknown) {
     await $.store.set('enrolled', enrolled)
     await tick($, true)
     ensureTimer($)
-    void $.ui.open({ id: PANE, title: paneTitle() })
+    void openPane($)
     return { text: `This session now shows "${name}".` }
   }
 
@@ -361,7 +361,7 @@ async function runCommand($: EngineInterface, e: unknown) {
     return { text: 'Refreshed.' }
   }
 
-  void $.ui.open({ id: PANE, title: paneTitle() })
+  void openPane($)
   const age = current ? `${Math.round((h.now() - current.generatedAt) / 60_000)} min old` : 'no data yet'
   return {
     text: [
@@ -371,6 +371,16 @@ async function runCommand($: EngineInterface, e: unknown) {
       '/coordinator refresh                fetch now',
       '/coordinator on <profile>           use a profile in this session',
     ].join('\n'),
+  }
+}
+
+/** Open the pane only where a screen is attached. A headless session has none, and asking only makes noise. */
+async function openPane($: EngineInterface): Promise<void> {
+  try {
+    if ((await $.session.surfaces()).length === 0) return
+    await $.ui.open({ id: PANE, title: paneTitle() })
+  } catch {
+    // no surface to draw on: nothing to open
   }
 }
 
@@ -466,13 +476,13 @@ export const register: Register = on => {
     if (profileName) {
       await tick($).catch(() => {})
       ensureTimer($)
-      void $.ui.open({ id: PANE, title: paneTitle() })
+      void openPane($)
     }
     return next(e)
   })
 
   on('command.run', { command: 'pane' }, async $ => {
-    await $.ui.open({ id: PANE, title: paneTitle() })
+    await openPane($)
     return { text: 'Coordinator pane opened.' }
   })
 

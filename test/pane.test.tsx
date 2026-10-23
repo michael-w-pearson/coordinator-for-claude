@@ -18,7 +18,7 @@ const PANE = {
 
 type Hooks = (event: string, handler: (...args: never[]) => unknown) => void
 
-function world(on: Hooks, files: Record<string, string>, calls: string[][] = [], opens: string[] = []): ReturnType<typeof mock.clock> {
+function world(on: Hooks, files: Record<string, string>, calls: string[][] = [], opens: string[] = [], surfaces: string[] = ['terminal']): ReturnType<typeof mock.clock> {
   mock.env(on as never, { HOME })
   mock.store(on as never)
   const clock = mock.clock(on as never, { now: Date.now() })
@@ -26,6 +26,7 @@ function world(on: Hooks, files: Record<string, string>, calls: string[][] = [],
   on('ui.status', (() => ({ value: undefined })) as never)
   on('ui.open', (() => { opens.push('open'); return { value: { isPlaced: true } } }) as never)
   on('session.id', (() => ({ value: 'session-1' })) as never)
+  on('session.surfaces', (() => ({ value: surfaces })) as never)
   on('session.cwd', (() => ({ value: '/work/app' })) as never)
   on('session.start', ((_: unknown, e: { cwd: string }) => ({ cwd: e.cwd })) as never)
   // The engine may turn '/home/...' into a drive path on Windows, so match on the tail.
@@ -111,4 +112,11 @@ test('a config in the folder used before the rename still loads', async ($, on) 
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: /^Lanes$/ })).toBeTruthy()
   await ui.unmount()
+})
+
+test('a matched session with no screen attached does not try to open the pane', async ($, on) => {
+  const opens: string[] = []
+  world(on as never, { [`${BAND}/config.json`]: CONFIG }, [], opens, [])
+  await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: false })
+  expect(opens.length).toBe(0)
 })
