@@ -35,7 +35,7 @@ process.exit(3)
   writeFileSync(join(ghDir, 'gh'), '#!/bin/sh\nexec node "$(dirname "$0")/gh.js" "$@"\n', { mode: 0o755 })
   writeFileSync(join(ghDir, 'gh.cmd'), '@echo off\r\nnode "%~dp0gh.js" %*\r\n')
 
-  env = { ...process.env, COORDINATOR_BAND_HOME: home }
+  env = { ...process.env, COORDINATOR_HOME: home }
   const key = Object.keys(env).find(k => k.toLowerCase() === 'path') ?? 'PATH'
   // Drop any real gh from PATH so the fake one is the only one found.
   const rest = (env[key] ?? '').split(delimiter).filter(d => d && !existsSync(join(d, 'gh.exe')) && !existsSync(join(d, 'gh')))

@@ -7,7 +7,7 @@ Nothing leaves your machine because of this project.
 - The coordinator runs the GitHub tool `gh` on your machine. `gh` talks to GitHub with your own sign-in. That is the same traffic as running `gh pr list` yourself.
 - The coordinator sends nothing to its authors, to analytics, to a language model, or to any other server.
 - The coordinator never calls a language model. It costs no tokens. Everything is computed from GitHub fields and your rules.
-- The coordinator stores files only in its home folder (`~/.claude-coordinator` or `COORDINATOR_BAND_HOME`) and one small key-value entry in Claude Code's own plugin store (which session uses which profile).
+- The coordinator stores files only in its home folder (`~/.claude-coordinator` or `COORDINATOR_HOME`) and one small key-value entry in Claude Code's own plugin store (which session uses which profile).
 
 ## Read-only by default
 

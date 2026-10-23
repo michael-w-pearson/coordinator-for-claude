@@ -2,7 +2,7 @@
 
 All settings live in one file: `config.json` in the coordinator home folder.
 
-The home folder is `~/.claude-coordinator`. To use another folder, set the environment variable `COORDINATOR_BAND_HOME`.
+The home folder is `~/.claude-coordinator`. To use another folder, set the environment variable `COORDINATOR_HOME` (the older name `COORDINATOR_BAND_HOME` also works).
 
 ```
 ~/.claude-coordinator/

@@ -36,7 +36,7 @@ The data is older than `refresh.staleAfterMinutes` (30 by default). A refresh ma
 
 ## The scheduled job
 
-- **Windows:** Task Scheduler shows `coordinator-band-refresh`. It starts a hidden launcher, so no window appears. Run `coordinator schedule status`.
+- **Windows:** Task Scheduler shows `coordinator-for-claude-refresh`. It starts a hidden launcher, so no window appears. Run `coordinator schedule status`.
 - **macOS:** the job is a LaunchAgent. Run `launchctl list | grep coordinator-for-claude`.
 - **Linux:** a systemd user timer (`systemctl --user list-timers`), or a line in `crontab -l` tagged `coordinator-for-claude`.
 - A scheduled job cannot read files that only a running Claude Code session can see. The coordinator keeps all its files in `~/.claude-coordinator` for this reason.

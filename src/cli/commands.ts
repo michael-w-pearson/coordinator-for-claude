@@ -211,7 +211,7 @@ export async function doctor(argv: string[]): Promise<number> {
     await rm(join(home, '.doctor-check'), { force: true })
     say('OK', `${home} is writable`)
   } catch (e) {
-    say('FAIL', `${home} is not writable (${firstLine(e instanceof Error ? e.message : String(e), 80)})`, 'set COORDINATOR_BAND_HOME to a folder you can write to')
+    say('FAIL', `${home} is not writable (${firstLine(e instanceof Error ? e.message : String(e), 80)})`, 'set COORDINATOR_HOME to a folder you can write to')
   }
 
   const r = await readConfig(f.config)

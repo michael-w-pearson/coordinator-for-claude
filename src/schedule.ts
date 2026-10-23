@@ -1,9 +1,9 @@
 // Builds the operating-system job that runs `coordinator refresh` on a timer. Pure: it returns files and commands,
 // and the CLI writes and runs them.
 
-export const TASK_NAME = 'coordinator-band-refresh'
-const MAC_LABEL = 'band.coordinator.refresh'
-const CRON_TAG = '# coordinator-band-refresh'
+export const TASK_NAME = 'coordinator-for-claude-refresh'
+const MAC_LABEL = 'coordinator-for-claude.refresh'
+const CRON_TAG = '# coordinator-for-claude-refresh'
 
 export type ScheduleOptions = {
   nodePath: string
@@ -40,7 +40,7 @@ function windows(o: ScheduleOptions, n: number): Schedule {
   const content = [
     "' Starts the refresh with no console window. Written by: coordinator schedule install",
     'Set shell = CreateObject("WScript.Shell")',
-    `shell.Environment("Process")("COORDINATOR_BAND_HOME") = "${q(home)}"`,
+    `shell.Environment("Process")("COORDINATOR_HOME") = "${q(home)}"`,
     `shell.Run """${q(winPath(o.nodePath))}"" ""${q(winPath(o.scriptPath))}"" refresh --quiet", 0, True`,
     '',
   ].join('\r\n')
@@ -80,7 +80,7 @@ function macos(o: ScheduleOptions, n: number): Schedule {
     '  <true/>',
     '  <key>EnvironmentVariables</key>',
     '  <dict>',
-    '    <key>COORDINATOR_BAND_HOME</key>',
+    '    <key>COORDINATOR_HOME</key>',
     `    <string>${xml(o.home)}</string>`,
     '    <key>PATH</key>',
     '    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>',
@@ -106,7 +106,7 @@ function macos(o: ScheduleOptions, n: number): Schedule {
 }
 
 function linux(o: ScheduleOptions, n: number): Schedule {
-  const env = [`COORDINATOR_BAND_HOME=${o.home}`, `PATH=/usr/local/bin:/usr/bin:/bin:${o.userHome}/.local/bin`]
+  const env = [`COORDINATOR_HOME=${o.home}`, `PATH=/usr/local/bin:/usr/bin:/bin:${o.userHome}/.local/bin`]
   const exec = [o.nodePath, o.scriptPath, 'refresh', '--quiet']
   if (o.hasSystemd) {
     const dir = `${o.userHome}/.config/systemd/user`

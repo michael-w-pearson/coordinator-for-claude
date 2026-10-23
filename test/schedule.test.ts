@@ -7,10 +7,10 @@ const base = { nodePath: '/opt/my node/bin/node', scriptPath: '/opt/band/bin/coo
 test('windows: a hidden vbs launcher and exact schtasks arguments', () => {
   const s = buildSchedule('win32', { ...base, nodePath: 'C:\\Program Files\\nodejs\\node.exe', scriptPath: 'C:\\Users\\Some One\\band\\bin\\band.mjs', home: 'C:\\Users\\Some One\\.coordinator-band' })
   const vbs = 'C:\\Users\\Some One\\.coordinator-band\\launch-refresh.vbs'
-  expect(s.install[0]).toEqual(['schtasks', '/Create', '/SC', 'MINUTE', '/MO', '5', '/TN', 'coordinator-band-refresh', '/TR', `wscript.exe //B //Nologo "${vbs}"`, '/F'])
+  expect(s.install[0]).toEqual(['schtasks', '/Create', '/SC', 'MINUTE', '/MO', '5', '/TN', 'coordinator-for-claude-refresh', '/TR', `wscript.exe //B //Nologo "${vbs}"`, '/F'])
   expect(s.install[1]?.join(' ')).toContain('-StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries')
-  expect(s.uninstall[0]).toEqual(['schtasks', '/Delete', '/TN', 'coordinator-band-refresh', '/F'])
-  expect(s.status).toEqual(['schtasks', '/Query', '/TN', 'coordinator-band-refresh'])
+  expect(s.uninstall[0]).toEqual(['schtasks', '/Delete', '/TN', 'coordinator-for-claude-refresh', '/F'])
+  expect(s.status).toEqual(['schtasks', '/Query', '/TN', 'coordinator-for-claude-refresh'])
   expect(s.files[0]?.path).toBe(vbs)
   const content = s.files[0]?.content ?? ''
   expect(content).toContain('shell.Run """C:\\Program Files\\nodejs\\node.exe"" ""C:\\Users\\Some One\\band\\bin\\band.mjs"" refresh --quiet", 0, True')
@@ -25,7 +25,7 @@ test('interval is clamped to 1..59', () => {
 test('macos: a launch agent with the interval, run at load, logs and an escaped path', () => {
   const s = buildSchedule('darwin', { ...base, userHome: '/Users/u', home: '/Users/u/Band & Co', uid: 502 })
   const plist = s.files[0]
-  expect(plist?.path).toBe('/Users/u/Library/LaunchAgents/band.coordinator.refresh.plist')
+  expect(plist?.path).toBe('/Users/u/Library/LaunchAgents/coordinator-for-claude.refresh.plist')
   expect(plist?.content).toContain('<key>StartInterval</key>\n  <integer>300</integer>')
   expect(plist?.content).toContain('<key>RunAtLoad</key>\n  <true/>')
   expect(plist?.content).toContain('<string>/opt/my node/bin/node</string>')
@@ -38,12 +38,12 @@ test('macos: a launch agent with the interval, run at load, logs and an escaped 
 test('linux with systemd: a service and a timer under the user config folder', () => {
   const s = buildSchedule('linux', { ...base, hasSystemd: true, intervalMinutes: 10 })
   const [service, timer] = s.files
-  expect(service?.path).toBe('/home/u/.config/systemd/user/coordinator-band-refresh.service')
-  expect(timer?.path).toBe('/home/u/.config/systemd/user/coordinator-band-refresh.timer')
+  expect(service?.path).toBe('/home/u/.config/systemd/user/coordinator-for-claude-refresh.service')
+  expect(timer?.path).toBe('/home/u/.config/systemd/user/coordinator-for-claude-refresh.timer')
   expect(timer?.content).toContain('OnUnitActiveSec=10min')
   expect(timer?.content).toContain('WantedBy=timers.target')
   expect(service?.content).toContain('ExecStart="/opt/my node/bin/node" "/opt/band/bin/coordinator.mjs" "refresh" "--quiet"')
-  expect(s.install).toEqual([['systemctl', '--user', 'daemon-reload'], ['systemctl', '--user', 'enable', '--now', 'coordinator-band-refresh.timer']])
+  expect(s.install).toEqual([['systemctl', '--user', 'daemon-reload'], ['systemctl', '--user', 'enable', '--now', 'coordinator-for-claude-refresh.timer']])
 })
 
 test('linux without systemd: a tagged crontab line that is replaced, not duplicated', () => {
@@ -51,7 +51,7 @@ test('linux without systemd: a tagged crontab line that is replaced, not duplica
   expect(s.files).toEqual([])
   const install = s.install[0]?.[2] ?? ''
   expect(install).toContain('grep -v')
-  expect(install).toContain('# coordinator-band-refresh')
+  expect(install).toContain('# coordinator-for-claude-refresh')
   expect(install).toContain('*/5 * * * *')
   expect(install).toContain("'/opt/my node/bin/node'")
   expect(s.uninstall[0]?.[2]).toContain('grep -v')
