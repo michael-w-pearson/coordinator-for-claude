@@ -19,6 +19,10 @@ export type SectionRecord<T> = {
   fetchedAt: number | null
   /** Why the latest fetch failed. Absent when it worked. */
   error?: string
+  /** Consecutive failed fetches. Drives the back-off. Absent after a good fetch. */
+  failures?: number
+  /** Epoch ms before which a failed fetch is not tried again. */
+  retryAt?: number
 }
 
 export type Lane = {

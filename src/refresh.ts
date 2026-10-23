@@ -137,17 +137,27 @@ export async function fetchMergeLine(
 ): Promise<SectionRecord<MergeLineData>> {
   const now = host.now()
   const ttl = (config.ttlMinutes ?? DEFAULTS.mergeLineTtlMinutes) * 60_000
-  if (!force && prev && !prev.error && prev.fetchedAt !== null && now - prev.fetchedAt < ttl) return prev
+  if (!force && prev) {
+    if (prev.error ? now < (prev.retryAt ?? 0) : prev.fetchedAt !== null && now - prev.fetchedAt < ttl) return prev
+  }
   const fallback: MergeLineData = { head: null, entries: [] }
+  // After a failure wait ttl x2 per consecutive failure (capped). A rate limit waits at least half the cap.
+  const fail = (reason: string): SectionRecord<MergeLineData> => {
+    const failures = (prev?.failures ?? 0) + 1
+    const cap = DEFAULTS.maxBackoffMinutes * 60_000
+    const wait = Math.min(cap, ttl * 2 ** (failures - 1))
+    const limited = /rate limit|HTTP 403|403/i.test(reason)
+    return { ...failed(prev, fallback, reason), failures, retryAt: now + (limited ? Math.max(wait, cap / 2) : wait) }
+  }
   try {
     const result = await host.run(config.command, { ...(config.cwd ? { cwd: config.cwd } : {}), timeoutMs: (config.timeoutSeconds ?? 600) * 1000 })
     // Some tools exit non-zero on a healthy run, so judge by what they printed.
     const parsed = parseMergeLine(result.stdout)
     if (parsed) return ok(parsed, now)
     const why = firstLine(result.stderr) || (result.stdout.trim() ? `unreadable output: ${firstLine(result.stdout, 60)}` : 'it printed nothing')
-    return failed(prev, fallback, `merge line command gave no result (${why})`)
+    return fail(`merge line command gave no result (${why})`)
   } catch (err) {
-    return failed(prev, fallback, `merge line command could not run: ${reasonOf(err)}`)
+    return fail(`merge line command could not run: ${reasonOf(err)}`)
   }
 }
 

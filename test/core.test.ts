@@ -157,3 +157,25 @@ test('default stage colours are one ramp of distinct hex steps, and a stage may 
   expect(custom.config?.stages?.map(s => s.color)).toEqual(['#112233', 'red'])
   expect(loadConfig(JSON.stringify({ configVersion: 1, profiles: { p: profile }, stages: [{ id: 'a', color: '#12' }] })).config).toBeNull()
 })
+
+test('merge line: a failing status command backs off and is not retried inside the wait', async () => {
+  let clock = NOW
+  const host = { ...fakeHost(() => ({ exitCode: 1, stdout: '', stderr: 'gh: API rate limit exceeded' })), now: () => clock }
+  const run = async (prev: Awaited<ReturnType<typeof fetchMergeLine>> | null) => fetchMergeLine(host, { command: ['status-tool'] }, prev)
+  const calls = () => host.calls.length // fakeHost's calls array is shared by the spread
+  let rec = await run(null)
+  expect(rec.failures).toBe(1)
+  for (let i = 0; i < 20; i++) { clock += 30_000; rec = await run(rec) } // 10 minutes of 30 s ticks
+  expect(calls()).toBe(1)
+  clock += 31 * 60_000 // a rate limit waits at least 30 minutes
+  rec = await run(rec)
+  expect(calls()).toBe(2)
+  expect(rec.failures).toBe(2)
+  expect(rec.retryAt! - clock).toBe(60 * 60_000) // 30 x 2, capped at 60
+  clock += 61 * 60_000
+  rec = await run(rec)
+  clock += 61 * 60_000
+  rec = await run(rec)
+  expect(calls()).toBe(4)
+  expect(rec.retryAt! - clock).toBe(60 * 60_000) // never longer than the cap
+})

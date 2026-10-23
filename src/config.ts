@@ -43,7 +43,8 @@ export const DEFAULTS = {
   intervalMinutes: 5,
   staleAfterMinutes: 30,
   minMoving: 3,
-  mergeLineTtlMinutes: 8,
+  mergeLineTtlMinutes: 30, // the status command is expensive: hundreds of GitHub calls per run
+  maxBackoffMinutes: 60,
   statusColors: { moving: 'green', waiting: 'yellow', blocked: 'red', done: 'gray' } as const,
   needsLabel: 'needs-me',
   githubLimit: 30,

@@ -4,6 +4,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Changed
+- Merge line: default `ttlMinutes` is 30. A failed run backs off (ttl x2 per failure in a row, cap 60 minutes) and never retries inside that wait. Before, a failure was retried on every tick.
+
 ### Added
 - Default stage colours are one OKLCH ramp (violet to green); stage colours accept hex. A **plan** stage before build. A pull request counts as a plan when all its changed files are under `planPaths` or its title matches `planTitle`. Rules can test `plan`. The file list is part of the existing `gh pr list` call, so there is no extra request.
 

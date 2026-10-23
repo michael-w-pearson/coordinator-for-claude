@@ -136,11 +136,11 @@ To replace it, set `rules` on the source. A rule is `{ "when": { ... }, "stage":
 A merge line is a queue of pull requests that merge one at a time. The band does not know how your queue works. You give it a program that prints the queue.
 
 ```json
-"mergeLine": { "command": ["my-queue-tool", "status"], "cwd": "/path/to/repo", "ttlMinutes": 8, "repo": "app" }
+"mergeLine": { "command": ["my-queue-tool", "status"], "cwd": "/path/to/repo", "ttlMinutes": 30, "repo": "app" }
 ```
 
 The program must print `Head: #123` (the next to merge) and one `PR #124: note` line per waiting pull request. The note starts with `behind head`, `held`, `draft`, or free text. The section shows `Head #none` when there is no head.
-The command can be slow. The band runs it at most once per `ttlMinutes` and keeps the last good result if a run fails.
+The command can be slow. The band runs it at most once per `ttlMinutes` (default 30) and keeps the last good result if a run fails. After a failure it waits twice as long for each failure in a row, up to 60 minutes, and a rate-limit error waits at least 30. `band refresh --force-merge-line` skips the wait. A status command that calls the GitHub API can cost hundreds of calls per run, so do not lower the ttl without a reason.
 
 ### Codex Cloud (optional)
 
