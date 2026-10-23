@@ -61,7 +61,7 @@ test('init --yes writes a valid config and refuses to overwrite', () => {
 })
 
 test('init without values and without a terminal exits 2 and names the flags', () => {
-  const r = band(['init', '--yes', '--force'], { COORDINATOR_BAND_HOME: join(tmp, 'other') })
+  const r = band(['init', '--yes', '--force'], { COORDINATOR_HOME: join(tmp, 'other') })
   assert.equal(r.status, 2)
   assert.match(out(r), /--owner/)
   assert.match(out(r), /--repos/)
@@ -154,13 +154,13 @@ test('migrate --from converts an old file (dry run writes nothing)', () => {
   const legacy = join(tmp, 'legacy.json')
   writeFileSync(legacy, JSON.stringify({ profiles: { solo: { owner: 'example-org', repos: ['example-app'], pathLabel: 'band' } } }))
   const fresh = join(tmp, 'migrated-home')
-  const dry = band(['migrate', '--from', legacy], { COORDINATOR_BAND_HOME: fresh })
+  const dry = band(['migrate', '--from', legacy], { COORDINATOR_HOME: fresh })
   assert.equal(dry.status, 0, out(dry))
   assert.match(dry.stdout, /Dry run/)
   assert.ok(!existsSync(join(fresh, 'config.json')))
-  const wrote = band(['migrate', '--from', legacy, '--write'], { COORDINATOR_BAND_HOME: fresh })
+  const wrote = band(['migrate', '--from', legacy, '--write'], { COORDINATOR_HOME: fresh })
   assert.equal(wrote.status, 0, out(wrote))
-  assert.equal(band(['validate'], { COORDINATOR_BAND_HOME: fresh }).status, 0)
+  assert.equal(band(['validate'], { COORDINATOR_HOME: fresh }).status, 0)
 })
 
 test('old Node gets a plain message', () => {
