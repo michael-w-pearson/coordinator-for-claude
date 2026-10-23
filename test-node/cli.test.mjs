@@ -8,7 +8,7 @@ import { after, before, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const bin = join(root, 'bin', 'band.mjs')
+const bin = join(root, 'bin', 'coordinator.mjs')
 const fx = name => join(root, 'test', 'fixtures', name)
 
 let tmp, home, ghDir, env
@@ -75,13 +75,13 @@ test('validate accepts the starter config and rejects one with no configVersion'
   writeFileSync(old, JSON.stringify({ profiles: { main: {} } }))
   const bad = band(['validate', '--config', old])
   assert.equal(bad.status, 1)
-  assert.match(out(bad), /band migrate/)
+  assert.match(out(bad), /coordinator migrate/)
 })
 
 test('show before any refresh says there is no data', () => {
   const r = band(['show'])
   assert.equal(r.status, 0, out(r))
-  assert.match(r.stdout, /no data yet - run: band refresh/)
+  assert.match(r.stdout, /no data yet - run: coordinator refresh/)
 })
 
 test('refresh then show prints lanes from the recorded gh output', () => {
@@ -147,7 +147,7 @@ test('schedule status answers without changing anything', () => {
 
 test('migrate on a current config says it is already current; version prints', () => {
   assert.match(band(['migrate']).stdout, /already current/)
-  assert.match(band(['version']).stdout, /^coordinator-band \d+\.\d+\.\d+/)
+  assert.match(band(['version']).stdout, /^coordinator-for-claude \d+\.\d+\.\d+/)
 })
 
 test('migrate --from converts an old file (dry run writes nothing)', () => {
@@ -164,7 +164,7 @@ test('migrate --from converts an old file (dry run writes nothing)', () => {
 })
 
 test('old Node gets a plain message', () => {
-  // The guard lives in bin/band.mjs and reads process.versions, so check the text it prints.
+  // The guard lives in bin/coordinator.mjs and reads process.versions, so check the text it prints.
   assert.match(readFileSync(bin, 'utf8'), /needs Node 22\.18 or newer \(you have \$\{process\.versions\.node\}\)\. Get it from https:\/\/nodejs\.org/)
 })
 

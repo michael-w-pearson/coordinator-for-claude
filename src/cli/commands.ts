@@ -27,7 +27,7 @@ type HomeConfig = { config: Config | null; lines: string[]; missing: boolean }
 
 async function readConfig(path: string): Promise<HomeConfig> {
   const text = await readText(path)
-  if (text === null) return { config: null, missing: true, lines: [`${path}: does not exist. Run: band init`] }
+  if (text === null) return { config: null, missing: true, lines: [`${path}: does not exist. Run: coordinator init`] }
   const { config, problems } = loadConfig(text, path)
   return { config, missing: false, lines: problems.map(p => `${p.path}: ${p.message}`) }
 }
@@ -37,9 +37,9 @@ async function readData(path: string): Promise<{ data: BandData | null; reason?:
   if (text === null) return { data: null }
   const parsed = parseJson(text)
   const root = parsed.ok ? asRecord(parsed.value) : null
-  if (!root) return { data: null, reason: `${path} is not valid JSON. Run: band refresh (it replaces the file).` }
+  if (!root) return { data: null, reason: `${path} is not valid JSON. Run: coordinator refresh (it replaces the file).` }
   if (root.dataVersion !== DATA_VERSION) {
-    return { data: null, reason: `${path} has dataVersion ${String(root.dataVersion)} but this release needs ${DATA_VERSION}. Run: band refresh (it replaces the file).` }
+    return { data: null, reason: `${path} has dataVersion ${String(root.dataVersion)} but this release needs ${DATA_VERSION}. Run: coordinator refresh (it replaces the file).` }
   }
   return { data: root as unknown as BandData }
 }
@@ -48,7 +48,7 @@ const csv = (s: string): string[] => s.split(',').map(x => x.trim()).filter(Bool
 
 // ---- init ------------------------------------------------------------------
 
-export const INIT_HELP = `Usage: band init [--name n] [--owner o] [--repos a,b] [--label l] [--force] [--yes]
+export const INIT_HELP = `Usage: coordinator init [--name n] [--owner o] [--repos a,b] [--label l] [--force] [--yes]
 
 Writes a starter config for your GitHub repositories.
   --owner  GitHub user or organisation. Detected from this folder's git remote when you leave it out.
@@ -74,7 +74,7 @@ export async function init(argv: string[]): Promise<number> {
   const home = bandHome()
   const f = paths(home)
   if ((await exists(f.config)) && !has(p, 'force')) {
-    console.error(`${f.config} already exists, so nothing was changed. To replace it, run: band init --force (the old file is kept as config.json.bak). To check it, run: band validate`)
+    console.error(`${f.config} already exists, so nothing was changed. To replace it, run: coordinator init --force (the old file is kept as config.json.bak). To check it, run: coordinator validate`)
     return 1
   }
 
@@ -107,7 +107,7 @@ export async function init(argv: string[]): Promise<number> {
   }
   const missing = [...(owner ? [] : ['--owner']), ...(repos.length > 0 ? [] : ['--repos'])]
   if (missing.length > 0) {
-    console.error(`Missing ${missing.join(' and ')}. Pass them, for example: band init --owner example-org --repos example-app (or run this inside a folder cloned from GitHub).`)
+    console.error(`Missing ${missing.join(' and ')}. Pass them, for example: coordinator init --owner example-org --repos example-app (or run this inside a folder cloned from GitHub).`)
     return 2
   }
   if (!/^[\w.-]+$/.test(owner ?? '') || !repos.every(r => /^[\w.-]+$/.test(r))) {
@@ -117,7 +117,7 @@ export async function init(argv: string[]): Promise<number> {
 
   const ghVersion = await probe(['gh', '--version'])
   if (ghVersion.slow) {
-    console.log('Warning: gh did not answer in 45 seconds. The machine may be busy. Run "band doctor" later.')
+    console.log('Warning: gh did not answer in 45 seconds. The machine may be busy. Run "coordinator doctor" later.')
   } else if (!ghVersion.res || ghVersion.res.exitCode !== 0) {
     console.log(`Warning: the "gh" tool was not found. ${GH_INSTALL}`)
   } else {
@@ -140,15 +140,15 @@ export async function init(argv: string[]): Promise<number> {
   console.log(`
 Next steps
   1. On GitHub, add the label "${label}" to a pull request in ${owner}/${repos.join(', ')}.
-  2. Open Claude Code. The band pane appears and shows that pull request as a lane.
-  3. To see the band in this terminal, run: band show
-  4. Optional: keep it fresh when Claude Code is closed with: band schedule install`)
+  2. Open Claude Code. The coordinator pane appears and shows that pull request as a lane.
+  3. To see the coordinator in this terminal, run: coordinator show
+  4. Optional: keep it fresh when Claude Code is closed with: coordinator schedule install`)
   return 0
 }
 
 // ---- validate --------------------------------------------------------------
 
-export const VALIDATE_HELP = `Usage: band validate [--config path]
+export const VALIDATE_HELP = `Usage: coordinator validate [--config path]
 
 Checks config.json and says what is wrong, line by line. Exits 1 when the config cannot be used.`
 
@@ -172,9 +172,9 @@ export async function validate(argv: string[]): Promise<number> {
 
 // ---- doctor ----------------------------------------------------------------
 
-export const DOCTOR_HELP = `Usage: band doctor
+export const DOCTOR_HELP = `Usage: coordinator doctor
 
-Checks Node, gh, the band folder, the config, the data files and the scheduled job. Prints OK, WARN or FAIL
+Checks Node, gh, the coordinator folder, the config, the data files and the scheduled job. Prints OK, WARN or FAIL
 for each, with the fix. Exits 1 when anything FAILs.`
 
 export async function doctor(argv: string[]): Promise<number> {
@@ -195,12 +195,12 @@ export async function doctor(argv: string[]): Promise<number> {
 
   const gh = await probe(['gh', '--version'])
   if (gh.slow) {
-    say('WARN', 'gh did not answer in 45 seconds', 'the machine may be busy. Run band doctor again')
+    say('WARN', 'gh did not answer in 45 seconds', 'the machine may be busy. Run coordinator doctor again')
   } else if (gh.res && gh.res.exitCode === 0) {
     say('OK', 'gh is installed')
     const auth = await probe(['gh', 'auth', 'status'])
     if (auth.res && auth.res.exitCode === 0) say('OK', 'gh is signed in')
-    else if (auth.slow) say('WARN', 'gh auth status did not answer in 45 seconds', 'run band doctor again')
+    else if (auth.slow) say('WARN', 'gh auth status did not answer in 45 seconds', 'run coordinator doctor again')
     else say('FAIL', 'gh is not signed in', 'run: gh auth login')
   } else {
     say('FAIL', 'gh is not installed', 'install it from https://cli.github.com, then run: gh auth login')
@@ -216,17 +216,17 @@ export async function doctor(argv: string[]): Promise<number> {
 
   const r = await readConfig(f.config)
   if (r.config) say('OK', 'config is valid')
-  else say('FAIL', 'config is not valid', `${r.lines.join(' / ')} (run: band validate)`)
+  else say('FAIL', 'config is not valid', `${r.lines.join(' / ')} (run: coordinator validate)`)
 
   if (r.config) {
     const staleMin = r.config.refresh?.staleAfterMinutes ?? DEFAULTS.staleAfterMinutes
     for (const name of Object.keys(r.config.profiles)) {
       const d = await readData(f.data(name))
       if (d.reason) say('WARN', `data for "${name}" cannot be used`, d.reason)
-      else if (!d.data) say('WARN', `no data yet for "${name}"`, 'run: band refresh')
+      else if (!d.data) say('WARN', `no data yet for "${name}"`, 'run: coordinator refresh')
       else {
         const age = Math.round((Date.now() - d.data.generatedAt) / 60_000)
-        if (age > staleMin) say('WARN', `data for "${name}" is ${age} minutes old`, 'run: band refresh, or keep it fresh with: band schedule install')
+        if (age > staleMin) say('WARN', `data for "${name}" is ${age} minutes old`, 'run: coordinator refresh, or keep it fresh with: coordinator schedule install')
         else say('OK', `data for "${name}" is ${age} minute(s) old`)
       }
     }
@@ -236,13 +236,13 @@ export async function doctor(argv: string[]): Promise<number> {
   }
 
   if (await isScheduled()) say('OK', 'scheduled refresh is installed')
-  else say('WARN', 'scheduled refresh is not installed (optional)', 'run: band schedule install')
+  else say('WARN', 'scheduled refresh is not installed (optional)', 'run: coordinator schedule install')
   return failed ? 1 : 0
 }
 
 // ---- refresh ---------------------------------------------------------------
 
-export const REFRESH_HELP = `Usage: band refresh [--profile n] [--force-merge-line] [--quiet]
+export const REFRESH_HELP = `Usage: coordinator refresh [--profile n] [--force-merge-line] [--quiet]
 
 Fetches fresh data from GitHub (through gh) and writes data/<profile>.json. A failed section is stored as a
 failure with its reason, and the last good data is kept. Exits 1 only for config or write errors.
@@ -298,7 +298,7 @@ export async function refresh(argv: string[]): Promise<number> {
         if (!quiet) console.log(`${name}: ${summarize(data)}`)
       } catch (e) {
         code = 1
-        console.error(`Could not refresh "${name}": ${e instanceof Error ? e.message : String(e)}. Check that ${home} is writable (run: band doctor).`)
+        console.error(`Could not refresh "${name}": ${e instanceof Error ? e.message : String(e)}. Check that ${home} is writable (run: coordinator doctor).`)
       }
     }))
   } finally {
@@ -309,7 +309,7 @@ export async function refresh(argv: string[]): Promise<number> {
 
 // ---- show ------------------------------------------------------------------
 
-export const GRAPH_HELP = `Usage: band graph [--profile n]
+export const GRAPH_HELP = `Usage: coordinator graph [--profile n]
 
 Prints a Mermaid flowchart of the lanes: stage colours, dependencies ("depends on #12" in a pull request description) and campaigns.
 Paste it into a Markdown file or any Mermaid viewer.`
@@ -326,14 +326,14 @@ export async function graph(argv: string[]): Promise<number> {
   if (!name || !r.config.profiles[name]) { console.error(`No profile named "${str(p, 'profile') ?? ''}". The profiles in your config are: ${names.join(', ')}.`); return 2 }
   const d = await readData(f.data(name))
   if (d.reason) { console.error(d.reason); return 1 }
-  if (!d.data) { console.log('no data yet - run: band refresh'); return 0 }
+  if (!d.data) { console.log('no data yet - run: coordinator refresh'); return 0 }
   console.log(mermaid(d.data, r.config))
   return 0
 }
 
-export const SHOW_HELP = `Usage: band show [--profile n] [--width n] [--json]
+export const SHOW_HELP = `Usage: coordinator show [--profile n] [--width n] [--json]
 
-Prints the band as text, from the last data file.`
+Prints the coordinator as text, from the last data file.`
 
 export async function show(argv: string[]): Promise<number> {
   const p = parseArgs(argv, { bool: ['json'], value: ['profile', 'width'] })
@@ -353,7 +353,7 @@ export async function show(argv: string[]): Promise<number> {
 
   const d = await readData(f.data(name))
   if (d.reason) { console.error(d.reason); return 1 }
-  if (!d.data) { console.log('no data yet - run: band refresh'); return 0 }
+  if (!d.data) { console.log('no data yet - run: coordinator refresh'); return 0 }
   const view = buildView(d.data, config, {
     now: Date.now(),
     title: profile.title ?? name,
@@ -368,7 +368,7 @@ export async function show(argv: string[]): Promise<number> {
 export async function version(): Promise<number> {
   const parsed = parseJson(await readFile(new URL('../../package.json', import.meta.url), 'utf8'))
   const pkg = parsed.ok ? asRecord(parsed.value) : null
-  console.log(`coordinator-band ${String(pkg?.version ?? 'unknown')} (config version ${CONFIG_VERSION}, data version ${DATA_VERSION})`)
+  console.log(`coordinator-for-claude ${String(pkg?.version ?? 'unknown')} (config version ${CONFIG_VERSION}, data version ${DATA_VERSION})`)
   return 0
 }
 

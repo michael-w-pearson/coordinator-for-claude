@@ -4,13 +4,17 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [1.1.0] - 2026-10-23
 
+### Changed
+- **Renamed** from "coordinator-band" to **Claude Coordinator**. The plugin and repository are `coordinator-for-claude` (a plugin name may not start with "claude-"). The command is `/coordinator` and the terminal program is `coordinator`. The old `/band` command and `band` program still work. The settings folder is now `~/.claude-coordinator`; a folder made before the rename (`~/.coordinator-band`) is used when it is the only one. `COORDINATOR_HOME` replaces `COORDINATOR_BAND_HOME`, which still works.
+- A session only opens the pane, starts the timer and fetches when it matches a profile (its session id, its folder, or `/coordinator on <profile>`). Before, every session opened it.
+
 ### Added
 - Merge line `file`: read a JSON snapshot of the line first (no GitHub calls), and run `command` only when it is missing, stale (`maxAgeMinutes`, default 15) or unreadable.
 - **Next** line at the top: what to do right now (answer a question, merge the queue head, unblock, nudge a stuck lane, start a waiting lane). Rules only, no model.
 - **Time in stage** on every lane, amber past `stuckHours` (default 24), red past 72 h. **Flow** lines: merged per day (7-day sparkline) and median time in each stage. Merged pull requests are asked for once an hour, one `gh pr list` per repository.
 - **Why stuck**: failing check names, who is asked to review, and what a lane waits on ("depends on #12" in the description).
 - **Campaigns**: lanes grouped by a `campaign:` label or a milestone, with merged against total. `campaignPrefix` on the github source changes the label prefix.
-- **Dependencies** section (a tree) and `band graph` (Mermaid text).
+- **Dependencies** section (a tree) and `coordinator graph` (Mermaid text).
 - **Ask Claude** button on blocked lanes and on the Next line. With `sessions.dir` set on a profile, the button sends to the session that owns the pull request.
 - **Alerts**: a toast when a lane turns blocked, a lane gets stuck or the queue head changes. Each is said once.
 - **Compact** and **Focus** buttons in the pane.
@@ -26,7 +30,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 First public release. The project began as a private mod and was reworked so it holds nothing specific to one person or machine.
 
 ### Added
-- `band init`, `band validate`, `band doctor`, `band refresh`, `band show`, `band migrate`, `band schedule`. And the matching `/band` commands inside Claude Code.
+- `coordinator init`, `coordinator validate`, `coordinator doctor`, `coordinator refresh`, `coordinator show`, `coordinator migrate`, `coordinator schedule`. And the matching `/coordinator` commands inside Claude Code.
 - One config file with defaults (`config.json`). **schema** `configVersion: 1`.
 - Data sources as plugins: `github` (reference), `file`, and `command` (any program that prints JSON).
 - Lanes derived from GitHub: every open pull request with a label becomes a lane. Stage and status come from rules in config.

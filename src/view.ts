@@ -1,5 +1,5 @@
 // Turns data plus config into styled lines. Pure. The pane draws the lines with its own elements,
-// and `band show` draws the same lines as plain text. So a test of this file tests what the person sees.
+// and `coordinator show` draws the same lines as plain text. So a test of this file tests what the person sees.
 
 import { DEFAULT_STAGES, DEFAULTS } from './config.ts'
 import { median, perDay, sparkline } from './flow.ts'
@@ -271,7 +271,7 @@ export function buildView(data: BandData | null, config: Config, o: ViewOptions,
   if (!data) {
     return {
       title: o.title,
-      sections: [{ id: 'lanes', title: 'lanes', color: 'red', state: 'error', note: 'unavailable', noteColor: 'red', lines: [[seg('unavailable: nothing fetched yet. Wait a moment or run "band refresh".', { color: 'red' })]] }],
+      sections: [{ id: 'lanes', title: 'lanes', color: 'red', state: 'error', note: 'unavailable', noteColor: 'red', lines: [[seg('unavailable: nothing fetched yet. Wait a moment or run "coordinator refresh".', { color: 'red' })]] }],
     }
   }
   const sections: SectionView[] = [

@@ -24,7 +24,7 @@ export function parseFeed(text: string, label: string): Feed {
   const root = asRecord(parsed.value)
   if (!root) throw new SourceError(`${label} must be a JSON list or object`)
   if (root.feedVersion !== undefined && root.feedVersion !== FEED_VERSION) {
-    throw new SourceError(`${label} has feedVersion ${String(root.feedVersion)} but this release reads ${FEED_VERSION}. Run "band migrate".`)
+    throw new SourceError(`${label} has feedVersion ${String(root.feedVersion)} but this release reads ${FEED_VERSION}. Run "coordinator migrate".`)
   }
   const updated = isString(root.updated) ? Date.parse(root.updated) : NaN
   return { lanes: records(root.lanes), needs: records(root.needs), updated: Number.isFinite(updated) ? updated : null }

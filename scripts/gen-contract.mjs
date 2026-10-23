@@ -33,7 +33,7 @@ export type LoadState = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'coordinator-band': {
+    'coordinator-for-claude': {
       load: LoadState
       data: BandData | null
       answered: Record<string, string>

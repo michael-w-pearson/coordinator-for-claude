@@ -1,4 +1,4 @@
-// `band migrate`: bring an old profiles file (or an old config) up to the current config version.
+// `coordinator migrate`: bring an old profiles file (or an old config) up to the current config version.
 
 import { loadConfig } from '../config.ts'
 import { migrateLegacy } from '../migrate.ts'
@@ -7,7 +7,7 @@ import { asRecord, parseJson } from '../util.ts'
 import { has, parseArgs, str } from './args.ts'
 import { atomicWrite, backup, bandHome, paths, readText } from './files.ts'
 
-export const MIGRATE_HELP = `Usage: band migrate [--from old-profiles.json] [--merge-line-command "..."] [--band profile=path ...] [--write]
+export const MIGRATE_HELP = `Usage: coordinator migrate [--from old-profiles.json] [--merge-line-command "..."] [--band profile=path ...] [--write]
 
 With --from: converts an old profiles file into config.json. Without --write it only shows what it would write.
   --merge-line-command  Program and arguments for the merge line section, using {owner} and {repo}.
@@ -27,16 +27,16 @@ export async function migrate(argv: string[]): Promise<number> {
   let source: string
   if (from) {
     const text = await readText(from)
-    if (text === null) { console.error(`Cannot read ${from}. Check the path and run again: band migrate --from <old profiles file>`); return 1 }
+    if (text === null) { console.error(`Cannot read ${from}. Check the path and run again: coordinator migrate --from <old profiles file>`); return 1 }
     source = text
   } else {
     const text = await readText(f.config)
-    if (text === null) { console.log(`There is no config at ${f.config}. Run: band init`); return 1 }
+    if (text === null) { console.log(`There is no config at ${f.config}. Run: coordinator init`); return 1 }
     const parsed = parseJson(text)
     const version = parsed.ok ? asRecord(parsed.value)?.configVersion : undefined
-    if (!parsed.ok) { console.error(`${f.config} is not valid JSON (${parsed.reason}). Fix the syntax, or start again with: band init --force`); return 1 }
+    if (!parsed.ok) { console.error(`${f.config} is not valid JSON (${parsed.reason}). Fix the syntax, or start again with: coordinator init --force`); return 1 }
     if (version === CONFIG_VERSION) { console.log(`config.json is already current (version ${CONFIG_VERSION}). Nothing to do.`); return 0 }
-    if (version !== undefined) { console.error(`config.json is version ${String(version)}, which this release does not know. Update coordinator-band.`); return 1 }
+    if (version !== undefined) { console.error(`config.json is version ${String(version)}, which this release does not know. Update coordinator-for-claude.`); return 1 }
     source = text
   }
 
@@ -74,6 +74,6 @@ export async function migrate(argv: string[]): Promise<number> {
   await atomicWrite(f.config, text)
   for (const [name, body] of Object.entries(result.overrides)) await atomicWrite(f.override(name), body)
   console.log(`Wrote ${f.config}${kept ? ' (the previous file is kept as config.json.bak)' : ''}${Object.keys(result.overrides).map(n => `\nWrote ${f.override(n)}`).join('')}`)
-  console.log(loaded.config ? 'Next: run "band validate", then "band refresh".' : 'The new config has problems (listed above). Fix them in config.json, then run: band validate')
+  console.log(loaded.config ? 'Next: run "coordinator validate", then "coordinator refresh".' : 'The new config has problems (listed above). Fix them in config.json, then run: coordinator validate')
   return loaded.config ? 0 : 1
 }

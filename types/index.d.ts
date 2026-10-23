@@ -53,7 +53,7 @@ export type Lane = {
   dependsOn?: string[]
   /** Group name: a campaign label or a milestone. */
   campaign?: string
-  /** The Claude session that owns this pull request, when the band can tell. */
+  /** The Claude session that owns this pull request, when the coordinator can tell. */
   session?: { id: string; title: string }
 }
 
@@ -75,7 +75,7 @@ export type CodexTask = { id: string; status: string; title: string; age: string
 export type HealthValue = 'up' | 'down'
 export type ServiceHealth = { name: string; value: HealthValue; detail?: string }
 
-/** What the band remembers about movement between refreshes. */
+/** What the coordinator remembers about movement between refreshes. */
 export type Flow = {
   /** Pull requests seen merged, newest 14 days. */
   merged: { ref: string; at: number; campaign?: string }[]
@@ -213,7 +213,7 @@ export type LoadState = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'coordinator-band': {
+    'coordinator-for-claude': {
       load: LoadState
       data: BandData | null
       answered: Record<string, string>

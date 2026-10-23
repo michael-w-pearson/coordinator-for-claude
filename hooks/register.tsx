@@ -13,11 +13,11 @@ import { buildView } from '../src/view.ts'
 import type { Line, Seg, SectionView } from '../src/view.ts'
 import type { LoadState } from '../types'
 
-const PANE = 'coordinator-band-pane'
-const loadState = { plugin: 'coordinator-band', key: 'load' } as const
-const dataState = { plugin: 'coordinator-band', key: 'data' } as const
-const answeredState = { plugin: 'coordinator-band', key: 'answered' } as const
-const collapsedAtom = atom({ plugin: 'coordinator-band', key: 'collapsed' } as const, {} as Record<string, boolean>)
+const PANE = 'coordinator-for-claude-pane'
+const loadState = { plugin: 'coordinator-for-claude', key: 'load' } as const
+const dataState = { plugin: 'coordinator-for-claude', key: 'data' } as const
+const answeredState = { plugin: 'coordinator-for-claude', key: 'answered' } as const
+const collapsedAtom = atom({ plugin: 'coordinator-for-claude', key: 'collapsed' } as const, {} as Record<string, boolean>)
 
 type Ui = ReturnType<EngineInterface['ui']['resolve']>
 
@@ -30,12 +30,16 @@ const lastRun = { main: 0, services: 0, config: 0 }
 const busy = new Set<string>()
 
 async function makeHost($: EngineInterface): Promise<Host> {
-  const override = await $.env.get('COORDINATOR_BAND_HOME')
+  const override = (await $.env.get('COORDINATOR_HOME')) ?? (await $.env.get('COORDINATOR_BAND_HOME'))
   // USERPROFILE first: under Git Bash, HOME can be a /c/Users/... path that the engine cannot read.
   const winHome = await $.env.get('USERPROFILE')
   const userHome = winHome ?? (await $.env.get('HOME')) ?? ''
   const platform = winHome || /^[A-Za-z]:|\\/.test(userHome) ? 'win32' : userHome.startsWith('/Users/') ? 'darwin' : 'linux'
-  const home = (override ?? `${userHome}/.coordinator-band`).replace(/\\/g, '/')
+  // New default folder; a folder made before the rename keeps working when it is the only one.
+  const fresh = `${userHome}/.claude-coordinator`
+  const legacy = `${userHome}/.coordinator-band`
+  const found = override ?? ((await $.fs.exists(`${fresh}/config.json`)) || !(await $.fs.exists(`${legacy}/config.json`)) ? fresh : legacy)
+  const home = found.replace(/\\/g, '/')
   return {
     platform,
     home,
@@ -74,10 +78,10 @@ async function ensureHost($: EngineInterface): Promise<Host> {
   return host
 }
 
-const paneTitle = (): string => (config && profileName ? config.profiles[profileName]?.title ?? profileName : 'Coordinator band')
+const paneTitle = (): string => (config && profileName ? config.profiles[profileName]?.title ?? profileName : 'Claude Coordinator')
 
 const NO_CONFIG = (home: string) =>
-  `No config yet (looked for ${home}/config.json). In this chat, type: /band init <github-owner>/<repo>`
+  `No config yet (looked for ${home}/config.json). In this chat, type: /coordinator init <github-owner>/<repo>`
 
 async function setLoad($: EngineInterface, value: LoadState): Promise<void> {
   await $.state.set(loadState, value)
@@ -111,7 +115,7 @@ async function loadAll($: EngineInterface): Promise<void> {
     profile: profileName,
     config: loaded.config,
     problems: loaded.problems.map(p => `${p.path}: ${p.message}`),
-    hint: profileName ? null : `This session has no profile. Profiles: ${Object.keys(loaded.config.profiles).join(', ')}. Type: /band on <name>`,
+    hint: profileName ? null : `This session has no profile. Profiles: ${Object.keys(loaded.config.profiles).join(', ')}. Type: /coordinator on <name>`,
   })
 }
 
@@ -126,7 +130,7 @@ async function putData($: EngineInterface, data: BandData): Promise<void> {
   const lanes = data.lanes.data
   const moving = lanes.filter(l => l.status === 'moving').length
   const needs = data.needs.data.length
-  $.ui.status(lanes.length === 0 && data.lanes.fetchedAt === null ? undefined : `band ${moving}/${lanes.length} moving${needs > 0 ? ` · ${needs} need you` : ''}`)
+  $.ui.status(lanes.length === 0 && data.lanes.fetchedAt === null ? undefined : `coordinator ${moving}/${lanes.length} moving${needs > 0 ? ` · ${needs} need you` : ''}`)
 }
 
 /** Read the file the command-line refresher wrote. Returns true when its data was adopted. */
@@ -300,6 +304,76 @@ function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggl
   )
 }
 
+async function runCommand($: EngineInterface, e: unknown) {
+  const h = await ensureHost($)
+  const args = String((e as { args?: unknown }).args ?? '').trim().split(/\s+/).filter(Boolean)
+  const sub = args[0] ?? 'help'
+
+  if (sub === 'init') {
+    const spec = parseGithubRemote(`https://github.com/${args[1] ?? ''}`)
+    if (!spec) return { text: 'Usage: /coordinator init <github-owner>/<repo> [label]   Example: /coordinator init example-org/example-app' }
+    const path = `${h.home}/config.json`
+    if (await $.fs.exists(path)) return { text: `${path} already exists. Edit it, or delete it and run /coordinator init again.` }
+    const cfg = buildStarterConfig({ owner: spec.owner, repos: [spec.repo], ...(args[2] ? { label: args[2] } : {}) })
+    await $.fs.write(path, `${JSON.stringify(cfg, null, 2)}\n`)
+    await $.fs.write(`${h.home}/overrides/main.example.json`, STARTER_OVERRIDE)
+    await tick($, true)
+    ensureTimer($)
+    void $.ui.open({ id: PANE, title: paneTitle() })
+    return { text: `Wrote ${path}. Add the label "${cfg.profiles.main?.sources[0] && 'label' in cfg.profiles.main.sources[0] ? cfg.profiles.main.sources[0].label : 'band'}" to a pull request in ${spec.owner}/${spec.repo} and it appears as a lane. Needs the GitHub tool: /coordinator doctor` }
+  }
+
+  if (sub === 'validate' || sub === 'doctor') {
+    await loadAll($)
+    const load = (await $.state.get(loadState)).value
+    const lines: string[] = []
+    lines.push(load?.config ? 'OK    config.json is valid' : `FAIL  ${(load?.problems.join('; ') || load?.hint) ?? 'no config'}`)
+    if (load?.problems.length && load.config) lines.push(...load.problems.map(p => `WARN  ${p}`))
+    if (sub === 'doctor') {
+      try {
+        const v = await h.run(['gh', '--version'], { timeoutMs: 10_000 })
+        lines.push(v.exitCode === 0 ? `OK    ${firstLine(v.stdout)}` : 'FAIL  gh did not run. Install it from https://cli.github.com')
+        const a = await h.run(['gh', 'auth', 'status'], { timeoutMs: 15_000 })
+        lines.push(a.exitCode === 0 ? 'OK    gh is signed in' : 'FAIL  gh is not signed in. Run in a terminal: gh auth login')
+      } catch {
+        lines.push('FAIL  the GitHub tool "gh" is not installed. Install it from https://cli.github.com then run: gh auth login')
+      }
+      lines.push('INFO  The coordinator reads GitHub only. It sends nothing anywhere. Services are checked only if you list them.')
+    }
+    return { text: lines.join('\n') }
+  }
+
+  if (sub === 'on') {
+    await loadAll($)
+    const name = args[1]
+    if (!name || !config?.profiles[name]) return { text: `Usage: /coordinator on <profile>. Profiles: ${Object.keys(config?.profiles ?? {}).join(', ') || 'none (run /coordinator init first)'}` }
+    const enrolled = ((await $.store.get('enrolled')) ?? {}) as Record<string, string>
+    enrolled[await $.session.id()] = name
+    await $.store.set('enrolled', enrolled)
+    await tick($, true)
+    ensureTimer($)
+    void $.ui.open({ id: PANE, title: paneTitle() })
+    return { text: `This session now shows "${name}".` }
+  }
+
+  if (sub === 'refresh') {
+    await tick($, true)
+    return { text: 'Refreshed.' }
+  }
+
+  void $.ui.open({ id: PANE, title: paneTitle() })
+  const age = current ? `${Math.round((h.now() - current.generatedAt) / 60_000)} min old` : 'no data yet'
+  return {
+    text: [
+      `Claude Coordinator (${profileName ?? 'no profile'}, ${age}).`,
+      '/coordinator init <owner>/<repo>   write a starter config',
+      '/coordinator validate | doctor      check the config and tools',
+      '/coordinator refresh                fetch now',
+      '/coordinator on <profile>           use a profile in this session',
+    ].join('\n'),
+  }
+}
+
 let timerStarted = false
 
 /** Fetch every 30 s, but only in a session that has a profile. Other sessions never start the timer. */
@@ -320,7 +394,7 @@ export const register: Register = on => {
     if (!l || !l.config || !l.profile) {
       return (
         <Box flexDirection="column" paddingX={1}>
-          <Text bold color="yellow">Coordinator band is not set up for this session</Text>
+          <Text bold color="yellow">Claude Coordinator is not set up for this session</Text>
           {(l?.problems ?? []).map((p, i) => <Text key={`p-${i}`} color="red">{p}</Text>)}
           <Text>{l?.hint ?? 'Loading…'}</Text>
           <Text dimColor>Docs: README.md, section "Set up in two minutes".</Text>
@@ -384,9 +458,10 @@ export const register: Register = on => {
   })
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'band', description: 'Coordinator band: /band init <owner>/<repo>, validate, refresh, doctor, on <profile>' })
-    await $.command.register({ name: 'pane', description: 'Open the coordinator band pane' })
-    // Only a session that matches a profile (its id, its folder, or /band on) gets the pane, the timer and the fetches.
+    await $.command.register({ name: 'band', description: 'Old name of /coordinator' })
+    await $.command.register({ name: 'coordinator', description: 'Claude Coordinator: /coordinator init <owner>/<repo>, validate, refresh, doctor, on <profile>' })
+    await $.command.register({ name: 'pane', description: 'Open the coordinator pane' })
+    // Only a session that matches a profile (its id, its folder, or /coordinator on) gets the pane, the timer and the fetches.
     await loadAll($).catch(() => {})
     if (profileName) {
       await tick($).catch(() => {})
@@ -398,76 +473,9 @@ export const register: Register = on => {
 
   on('command.run', { command: 'pane' }, async $ => {
     await $.ui.open({ id: PANE, title: paneTitle() })
-    return { text: 'Band pane opened.' }
+    return { text: 'Coordinator pane opened.' }
   })
 
-  on('command.run', { command: 'band' }, async ($, e) => {
-    const h = await ensureHost($)
-    const args = String((e as { args?: unknown }).args ?? '').trim().split(/\s+/).filter(Boolean)
-    const sub = args[0] ?? 'help'
-
-    if (sub === 'init') {
-      const spec = parseGithubRemote(`https://github.com/${args[1] ?? ''}`)
-      if (!spec) return { text: 'Usage: /band init <github-owner>/<repo> [label]   Example: /band init example-org/example-app' }
-      const path = `${h.home}/config.json`
-      if (await $.fs.exists(path)) return { text: `${path} already exists. Edit it, or delete it and run /band init again.` }
-      const cfg = buildStarterConfig({ owner: spec.owner, repos: [spec.repo], ...(args[2] ? { label: args[2] } : {}) })
-      await $.fs.write(path, `${JSON.stringify(cfg, null, 2)}\n`)
-      await $.fs.write(`${h.home}/overrides/main.example.json`, STARTER_OVERRIDE)
-      await tick($, true)
-      ensureTimer($)
-      void $.ui.open({ id: PANE, title: paneTitle() })
-      return { text: `Wrote ${path}. Add the label "${cfg.profiles.main?.sources[0] && 'label' in cfg.profiles.main.sources[0] ? cfg.profiles.main.sources[0].label : 'band'}" to a pull request in ${spec.owner}/${spec.repo} and it appears as a lane. Needs the GitHub tool: /band doctor` }
-    }
-
-    if (sub === 'validate' || sub === 'doctor') {
-      await loadAll($)
-      const load = (await $.state.get(loadState)).value
-      const lines: string[] = []
-      lines.push(load?.config ? 'OK    config.json is valid' : `FAIL  ${(load?.problems.join('; ') || load?.hint) ?? 'no config'}`)
-      if (load?.problems.length && load.config) lines.push(...load.problems.map(p => `WARN  ${p}`))
-      if (sub === 'doctor') {
-        try {
-          const v = await h.run(['gh', '--version'], { timeoutMs: 10_000 })
-          lines.push(v.exitCode === 0 ? `OK    ${firstLine(v.stdout)}` : 'FAIL  gh did not run. Install it from https://cli.github.com')
-          const a = await h.run(['gh', 'auth', 'status'], { timeoutMs: 15_000 })
-          lines.push(a.exitCode === 0 ? 'OK    gh is signed in' : 'FAIL  gh is not signed in. Run in a terminal: gh auth login')
-        } catch {
-          lines.push('FAIL  the GitHub tool "gh" is not installed. Install it from https://cli.github.com then run: gh auth login')
-        }
-        lines.push('INFO  The band reads GitHub only. It sends nothing anywhere. Services are checked only if you list them.')
-      }
-      return { text: lines.join('\n') }
-    }
-
-    if (sub === 'on') {
-      await loadAll($)
-      const name = args[1]
-      if (!name || !config?.profiles[name]) return { text: `Usage: /band on <profile>. Profiles: ${Object.keys(config?.profiles ?? {}).join(', ') || 'none (run /band init first)'}` }
-      const enrolled = ((await $.store.get('enrolled')) ?? {}) as Record<string, string>
-      enrolled[await $.session.id()] = name
-      await $.store.set('enrolled', enrolled)
-      await tick($, true)
-      ensureTimer($)
-      void $.ui.open({ id: PANE, title: paneTitle() })
-      return { text: `This session now shows "${name}".` }
-    }
-
-    if (sub === 'refresh') {
-      await tick($, true)
-      return { text: 'Refreshed.' }
-    }
-
-    void $.ui.open({ id: PANE, title: paneTitle() })
-    const age = current ? `${Math.round((h.now() - current.generatedAt) / 60_000)} min old` : 'no data yet'
-    return {
-      text: [
-        `Coordinator band (${profileName ?? 'no profile'}, ${age}).`,
-        '/band init <owner>/<repo>   write a starter config',
-        '/band validate | doctor      check the config and tools',
-        '/band refresh                fetch now',
-        '/band on <profile>           use a profile in this session',
-      ].join('\n'),
-    }
-  })
+  on('command.run', { command: 'coordinator' }, runCommand)
+  on('command.run', { command: 'band' }, runCommand)
 }

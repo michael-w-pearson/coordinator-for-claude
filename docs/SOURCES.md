@@ -61,7 +61,7 @@ type Source = {
 }
 ```
 
-`ctx.host.run(argv)` runs a program. `ctx.host.readFile(path)` reads a file. Use them instead of Node or Claude Code calls, so the source works in the pane, in `band refresh` and in tests.
+`ctx.host.run(argv)` runs a program. `ctx.host.readFile(path)` reads a file. Use them instead of Node or Claude Code calls, so the source works in the pane, in `coordinator refresh` and in tests.
 
 Steps:
 

@@ -3,17 +3,17 @@ import { expect, mock, test } from 'claude-code/testing'
 import { FIXTURES } from './fixtures.ts'
 
 const HOME = '/home/test'
-const BAND = `${HOME}/.coordinator-band`
+const BAND = `${HOME}/.claude-coordinator`
 const CONFIG = JSON.stringify({
   configVersion: 1,
   profiles: { main: { sources: [{ type: 'github', owner: 'cli', repos: ['cli'], label: 'band' }] } },
 })
 
 const PANE = {
-  plugin: 'coordinator-band',
+  plugin: 'coordinator-for-claude',
   component: 'Pane',
-  requestId: 'coordinator-band-pane',
-  props: { title: 'Coordinator band', isFocused: false, bodyColumns: 70, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
+  requestId: 'coordinator-for-claude-pane',
+  props: { title: 'Claude Coordinator', isFocused: false, bodyColumns: 70, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
 } as const
 
 type Hooks = (event: string, handler: (...args: never[]) => unknown) => void
@@ -22,7 +22,7 @@ function world(on: Hooks, files: Record<string, string>, calls: string[][] = [],
   mock.env(on as never, { HOME })
   mock.store(on as never)
   const clock = mock.clock(on as never, { now: Date.now() })
-  on('command.register', (() => ({ value: { command: 'band' } })) as never)
+  on('command.register', (() => ({ value: { command: 'coordinator' } })) as never)
   on('ui.status', (() => ({ value: undefined })) as never)
   on('ui.open', (() => { opens.push('open'); return { value: { isPlaced: true } } }) as never)
   on('session.id', (() => ({ value: 'session-1' })) as never)
@@ -47,7 +47,7 @@ test('with no config the pane says what to type', async ($, on) => {
   await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: /not set up/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /\/band init <github-owner>\/<repo>/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /\/coordinator init <github-owner>\/<repo>/ })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -66,7 +66,7 @@ test('a broken config shows its problem in the pane', async ($, on) => {
   world(on as never, { [`${BAND}/config.json`]: '{"profiles":{}}' })
   await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect(await ui.find({ type: 'Text', text: /band migrate/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /coordinator migrate/ })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -103,4 +103,12 @@ test('a session named in a profile match opens the pane', async ($, on) => {
   world(on as never, { [`${BAND}/config.json`]: matched }, [], opens)
   await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
   expect(opens.length).toBe(1)
+})
+
+test('a config in the folder used before the rename still loads', async ($, on) => {
+  world(on as never, { [`${HOME}/.coordinator-band/config.json`]: CONFIG })
+  await $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /^Lanes$/ })).toBeTruthy()
+  await ui.unmount()
 })

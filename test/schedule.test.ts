@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import { buildSchedule } from '../src/schedule.ts'
 
-const base = { nodePath: '/opt/my node/bin/node', scriptPath: '/opt/band/bin/band.mjs', home: '/home/u/.coordinator-band', intervalMinutes: 5, userHome: '/home/u' }
+const base = { nodePath: '/opt/my node/bin/node', scriptPath: '/opt/band/bin/coordinator.mjs', home: '/home/u/.coordinator-band', intervalMinutes: 5, userHome: '/home/u' }
 
 test('windows: a hidden vbs launcher and exact schtasks arguments', () => {
   const s = buildSchedule('win32', { ...base, nodePath: 'C:\\Program Files\\nodejs\\node.exe', scriptPath: 'C:\\Users\\Some One\\band\\bin\\band.mjs', home: 'C:\\Users\\Some One\\.coordinator-band' })
@@ -42,7 +42,7 @@ test('linux with systemd: a service and a timer under the user config folder', (
   expect(timer?.path).toBe('/home/u/.config/systemd/user/coordinator-band-refresh.timer')
   expect(timer?.content).toContain('OnUnitActiveSec=10min')
   expect(timer?.content).toContain('WantedBy=timers.target')
-  expect(service?.content).toContain('ExecStart="/opt/my node/bin/node" "/opt/band/bin/band.mjs" "refresh" "--quiet"')
+  expect(service?.content).toContain('ExecStart="/opt/my node/bin/node" "/opt/band/bin/coordinator.mjs" "refresh" "--quiet"')
   expect(s.install).toEqual([['systemctl', '--user', 'daemon-reload'], ['systemctl', '--user', 'enable', '--now', 'coordinator-band-refresh.timer']])
 })
 

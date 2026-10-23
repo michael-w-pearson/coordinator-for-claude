@@ -1,4 +1,4 @@
-// The config that `band init` writes, and the example override file. Pure.
+// The config that `coordinator init` writes, and the example override file. Pure.
 
 import { CONFIG_VERSION } from './types.ts'
 import type { Config } from './types.ts'

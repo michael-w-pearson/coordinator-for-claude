@@ -192,7 +192,7 @@ export async function fetchCodex(
   const now = host.now()
   const argv = config.command ?? ['codex', 'cloud', 'list', '--limit', '20']
   try {
-    // Run in the band folder: the codex tool writes an error.log into its working directory.
+    // Run in the coordinator folder: the codex tool writes an error.log into its working directory.
     const result = await host.run(argv, { cwd: host.home, timeoutMs: 30_000 })
     if (result.exitCode !== 0) return failed(prev, [], `codex failed: ${firstLine(result.stderr || result.stdout) || `exit code ${result.exitCode}`}`)
     // An empty list is a good answer. Text that holds no task and is not empty is not.

@@ -1,4 +1,4 @@
-// Builds the operating-system job that runs `band refresh` on a timer. Pure: it returns files and commands,
+// Builds the operating-system job that runs `coordinator refresh` on a timer. Pure: it returns files and commands,
 // and the CLI writes and runs them.
 
 export const TASK_NAME = 'coordinator-band-refresh'
@@ -38,7 +38,7 @@ function windows(o: ScheduleOptions, n: number): Schedule {
   const vbs = `${home}\\launch-refresh.vbs`
   const q = (s: string): string => s.replace(/"/g, '""')
   const content = [
-    "' Starts the refresh with no console window. Written by: band schedule install",
+    "' Starts the refresh with no console window. Written by: coordinator schedule install",
     'Set shell = CreateObject("WScript.Shell")',
     `shell.Environment("Process")("COORDINATOR_BAND_HOME") = "${q(home)}"`,
     `shell.Run """${q(winPath(o.nodePath))}"" ""${q(winPath(o.scriptPath))}"" refresh --quiet", 0, True`,
@@ -49,12 +49,12 @@ function windows(o: ScheduleOptions, n: number): Schedule {
     files: [{ path: vbs, content }],
     install: [
       ['schtasks', '/Create', '/SC', 'MINUTE', '/MO', String(n), '/TN', TASK_NAME, '/TR', `wscript.exe //B //Nologo "${vbs}"`, '/F'],
-      // Run a missed start as soon as the machine is awake again, and also on battery. A sleeping laptop must not leave the band hours old.
+      // Run a missed start as soon as the machine is awake again, and also on battery. A sleeping laptop must not leave the coordinator hours old.
       ['powershell.exe', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', `Set-ScheduledTask -TaskName '${TASK_NAME}' -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 1))`],
     ],
     uninstall: [['schtasks', '/Delete', '/TN', TASK_NAME, '/F']],
     status: ['schtasks', '/Query', '/TN', TASK_NAME],
-    summary: `Windows Task Scheduler task "${TASK_NAME}" runs "band refresh" every ${n} minute(s) with no window. Remove it with: band schedule uninstall`,
+    summary: `Windows Task Scheduler task "${TASK_NAME}" runs "coordinator refresh" every ${n} minute(s) with no window. Remove it with: coordinator schedule uninstall`,
   }
 }
 
@@ -101,7 +101,7 @@ function macos(o: ScheduleOptions, n: number): Schedule {
     install: [['launchctl', 'bootout', `gui/${uid}`, plist], ['launchctl', 'bootstrap', `gui/${uid}`, plist], ['launchctl', 'kickstart', '-k', service]],
     uninstall: [['launchctl', 'bootout', `gui/${uid}`, plist]],
     status: ['launchctl', 'print', service],
-    summary: `macOS LaunchAgent "${MAC_LABEL}" runs "band refresh" every ${n} minute(s). Remove it with: band schedule uninstall`,
+    summary: `macOS LaunchAgent "${MAC_LABEL}" runs "coordinator refresh" every ${n} minute(s). Remove it with: coordinator schedule uninstall`,
   }
 }
 
@@ -112,13 +112,13 @@ function linux(o: ScheduleOptions, n: number): Schedule {
     const dir = `${o.userHome}/.config/systemd/user`
     const timer = `${TASK_NAME}.timer`
     const service = [
-      '[Unit]', 'Description=coordinator-band refresh', '',
+      '[Unit]', 'Description=coordinator-for-claude refresh', '',
       '[Service]', 'Type=oneshot',
       ...env.map(e => `Environment=${unit(e)}`),
       `ExecStart=${exec.map(unit).join(' ')}`, '',
     ].join('\n')
     const timerText = [
-      '[Unit]', 'Description=Run the coordinator-band refresh on a timer', '',
+      '[Unit]', 'Description=Run the coordinator-for-claude refresh on a timer', '',
       '[Timer]', 'OnBootSec=1min', `OnUnitActiveSec=${n}min`, '',
       '[Install]', 'WantedBy=timers.target', '',
     ].join('\n')
@@ -128,7 +128,7 @@ function linux(o: ScheduleOptions, n: number): Schedule {
       install: [['systemctl', '--user', 'daemon-reload'], ['systemctl', '--user', 'enable', '--now', timer]],
       uninstall: [['systemctl', '--user', 'disable', '--now', timer], ['systemctl', '--user', 'daemon-reload']],
       status: ['systemctl', '--user', 'is-active', timer],
-      summary: `systemd user timer "${timer}" runs "band refresh" every ${n} minute(s). Remove it with: band schedule uninstall`,
+      summary: `systemd user timer "${timer}" runs "coordinator refresh" every ${n} minute(s). Remove it with: coordinator schedule uninstall`,
     }
   }
   // cron turns a bare % into a newline, so escape it.
@@ -140,7 +140,7 @@ function linux(o: ScheduleOptions, n: number): Schedule {
     install: [['sh', '-c', `( ${drop}; printf '%s\\n' ${sh(line)} ) | crontab -`]],
     uninstall: [['sh', '-c', `${drop} | crontab -`]],
     status: ['sh', '-c', `crontab -l 2>/dev/null | grep -q ${sh(CRON_TAG)}`],
-    summary: `A crontab line tagged "${CRON_TAG}" runs "band refresh" every ${n} minute(s). Remove it with: band schedule uninstall`,
+    summary: `A crontab line tagged "${CRON_TAG}" runs "coordinator refresh" every ${n} minute(s). Remove it with: coordinator schedule uninstall`,
   }
 }
 

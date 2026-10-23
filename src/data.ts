@@ -13,17 +13,17 @@ const isSection = (value: unknown): boolean => {
 
 export function checkData(text: string, file = 'data file'): DataCheck {
   const parsed = parseJson(text)
-  if (!parsed.ok) return { ok: false, reason: `${file} is not valid JSON (${parsed.reason}). Run "band refresh" to write it again.` }
+  if (!parsed.ok) return { ok: false, reason: `${file} is not valid JSON (${parsed.reason}). Run "coordinator refresh" to write it again.` }
   const root = asRecord(parsed.value)
-  if (!root) return { ok: false, reason: `${file} must be a JSON object. Run "band refresh" to write it again.` }
+  if (!root) return { ok: false, reason: `${file} must be a JSON object. Run "coordinator refresh" to write it again.` }
   if (root.dataVersion !== DATA_VERSION) {
     return {
       ok: false,
-      reason: `${file} is version ${String(root.dataVersion ?? 'none')} but this release reads version ${DATA_VERSION}. Run "band refresh" to rewrite it.`,
+      reason: `${file} is version ${String(root.dataVersion ?? 'none')} but this release reads version ${DATA_VERSION}. Run "coordinator refresh" to rewrite it.`,
     }
   }
   if (!isSection(root.lanes) || !isSection(root.needs) || !Array.isArray(asRecord(root.lanes)?.data) || !Array.isArray(asRecord(root.needs)?.data)) {
-    return { ok: false, reason: `${file} is missing its lanes or needs section. Run "band refresh" to write it again.` }
+    return { ok: false, reason: `${file} is missing its lanes or needs section. Run "coordinator refresh" to write it again.` }
   }
   return { ok: true, data: root as unknown as BandData }
 }

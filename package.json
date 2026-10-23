@@ -1,9 +1,10 @@
 {
-  "name": "coordinator-band",
+  "name": "coordinator-for-claude",
   "version": "1.1.0",
-  "description": "A status band for Claude Code, built from your GitHub pull requests.",
+  "description": "A live status panel for Claude Code, built from your GitHub pull requests.",
   "type": "module",
   "bin": {
+    "coordinator": "bin/coordinator.mjs",
     "band": "bin/band.mjs"
   },
   "engines": {
@@ -21,8 +22,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/michael-w-pearson/coordinator-band.git"
+    "url": "git+https://github.com/michael-w-pearson/coordinator-for-claude.git"
   },
-  "homepage": "https://github.com/michael-w-pearson/coordinator-band#readme",
+  "homepage": "https://github.com/michael-w-pearson/coordinator-for-claude#readme",
   "license": "MIT"
 }

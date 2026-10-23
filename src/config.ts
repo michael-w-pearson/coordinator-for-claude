@@ -162,7 +162,7 @@ function checkProfile(name: string, raw: unknown, stageIds: Set<string>, problem
 export function loadConfig(text: string, file = 'config.json'): Loaded {
   const parsed = parseJson(text)
   if (!parsed.ok) {
-    return { config: null, problems: [{ path: file, message: `is not valid JSON (${parsed.reason}). Fix the syntax or run "band init --force".`, fatal: true }] }
+    return { config: null, problems: [{ path: file, message: `is not valid JSON (${parsed.reason}). Fix the syntax or run "coordinator init --force".`, fatal: true }] }
   }
   const root = asRecord(parsed.value)
   if (!root) return { config: null, problems: [{ path: file, message: 'must be a JSON object', fatal: true }] }
@@ -174,7 +174,7 @@ export function loadConfig(text: string, file = 'config.json'): Loaded {
       config: null,
       problems: [{
         path: file,
-        message: `has no "configVersion". It looks like a file from an older release. Run "band migrate" to update it (a backup is kept).`,
+        message: `has no "configVersion". It looks like a file from an older release. Run "coordinator migrate" to update it (a backup is kept).`,
         fatal: true,
       }],
     }
@@ -186,8 +186,8 @@ export function loadConfig(text: string, file = 'config.json'): Loaded {
       problems: [{
         path: file,
         message: older
-          ? `is version ${String(version)} but this release needs version ${CONFIG_VERSION}. Run "band migrate" to update it (a backup is kept).`
-          : `is version ${String(version)}, newer than this release understands (${CONFIG_VERSION}). Update coordinator-band.`,
+          ? `is version ${String(version)} but this release needs version ${CONFIG_VERSION}. Run "coordinator migrate" to update it (a backup is kept).`
+          : `is version ${String(version)}, newer than this release understands (${CONFIG_VERSION}). Update coordinator-for-claude.`,
         fatal: true,
       }],
     }
@@ -197,7 +197,7 @@ export function loadConfig(text: string, file = 'config.json'): Loaded {
   const stageIds = new Set(stages.map(s => s.id))
   const profiles = asRecord(root.profiles)
   if (!profiles || Object.keys(profiles).length === 0) {
-    problems.push({ path: 'profiles', message: 'needs at least one profile. Run "band init".', fatal: true })
+    problems.push({ path: 'profiles', message: 'needs at least one profile. Run "coordinator init".', fatal: true })
   } else {
     for (const [name, raw] of Object.entries(profiles)) checkProfile(name, raw, stageIds, problems)
   }

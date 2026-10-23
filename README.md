@@ -1,4 +1,4 @@
-# coordinator-band
+# Claude Coordinator
 
 **See what your team's work is doing, at a glance, inside Claude Code.**
 
@@ -16,7 +16,7 @@ When several people, or several Claude sessions, work at once, the hard part is 
 - **Lanes by stage.** Every open pull request with your label becomes a lane. Six distinct colours run from violet (plan) to green (merged), so the stage reads at a glance and works for colour-blind viewers. Plans (docs-only changes) sit in their own stage before build.
 - **Why it is stuck.** Failing check names, who is asked to review, what it waits on, and how long it has been in the stage.
 - **Flow numbers.** Merged per day as a sparkline, and the median time work spends in each stage.
-- **Campaigns and dependencies.** Group lanes by a `campaign:` label or milestone. "Depends on #12" in a description draws a dependency tree, and `band graph` prints it as a Mermaid diagram you can paste into a document.
+- **Campaigns and dependencies.** Group lanes by a `campaign:` label or milestone. "Depends on #12" in a description draws a dependency tree, and `coordinator graph` prints it as a Mermaid diagram you can paste into a document.
 - **Alerts that earn attention.** A toast, once, when a lane turns blocked, gets stuck, or the merge queue head changes.
 - **Ask Claude.** A button on blocked lanes sends a ready-made prompt to Claude, or to the session that owns the pull request.
 - **Compact and Focus views** for narrow panes and for the repository you are in.
@@ -73,14 +73,14 @@ When several people, or several Claude sessions, work at once, the hard part is 
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-The capture is real output of `band show` on a public repository (`cli/cli`, lanes from the label `external`, needs from the label `bug`). It is the same text the pane draws. In Claude Code the pane adds colour, a thin stacked bar, and clickable buttons.
+The capture is real output of `coordinator show` on a public repository (`cli/cli`, lanes from the label `external`, needs from the label `bug`). It is the same text the pane draws. In Claude Code the pane adds colour, a thin stacked bar, and clickable buttons.
 
 ## Install
 
 You need Claude Code and the GitHub tool [`gh`](https://cli.github.com) signed in (`gh auth login`).
 
 ```
-/plugin install coordinator-band --marketplace michael-w-pearson/coordinator-band
+/plugin install coordinator-for-claude --marketplace michael-w-pearson/coordinator-for-claude
 ```
 
 Answer `y` to add the marketplace, then choose a scope.
@@ -90,27 +90,27 @@ Answer `y` to add the marketplace, then choose a scope.
 Inside Claude Code, type:
 
 ```
-/band init your-github-name/your-repo
+/coordinator init your-github-name/your-repo
 ```
 
-That writes a starter config and opens the pane. Now add the label `band` to a pull request in that repository. It appears as a lane within five minutes (or type `/band refresh`).
+That writes a starter config and opens the pane. Now add the label `band` to a pull request in that repository. It appears as a lane within five minutes (or type `/coordinator refresh`).
 
 Check that everything works:
 
 ```
-/band doctor
+/coordinator doctor
 ```
 
 Prefer a terminal? The same steps are a program that needs only Node 22.18 or newer:
 
 ```
-node bin/band.mjs init --owner your-github-name --repos your-repo
-node bin/band.mjs doctor
-node bin/band.mjs refresh
-node bin/band.mjs show
+node bin/coordinator.mjs init --owner your-github-name --repos your-repo
+node bin/coordinator.mjs doctor
+node bin/coordinator.mjs refresh
+node bin/coordinator.mjs show
 ```
 
-Everything about your setup is one file, `~/.coordinator-band/config.json`. `docs/CONFIG.md` explains each setting. `examples/` holds a full example.
+Everything about your setup is one file, `~/.claude-coordinator/config.json`. `docs/CONFIG.md` explains each setting. `examples/` holds a full example.
 
 ## How it works
 
@@ -120,19 +120,19 @@ Everything about your setup is one file, `~/.coordinator-band/config.json`. `doc
 | **Rules** | Turn a pull request's facts (draft, checks, review, auto-merge) into a stage and a status. You can replace the rules. Nothing is typed by hand unless you want it. |
 | **Stages** | Names, descriptions and colours are config. |
 | **Sections** | Each shows its age and one of four states: `ok`, `stale`, `empty`, or `unavailable: <reason>`. A failed fetch never blanks a section. The last good data stays, with its age. |
-| **Refresh** | The pane fetches for itself while Claude Code is open. Optionally an operating-system job keeps the files fresh when it is closed: `band schedule install`. It works on Windows, macOS and Linux. |
+| **Refresh** | The pane fetches for itself while Claude Code is open. Optionally an operating-system job keeps the files fresh when it is closed: `coordinator schedule install`. It works on Windows, macOS and Linux. |
 
-Why "no tokens": the band is plain code. Lanes are derived from GitHub fields by rules, not written by a model.
+Why "no tokens": the coordinator is plain code. Lanes are derived from GitHub fields by rules, not written by a model.
 
 ## Commands
 
-In Claude Code: `/band init <owner>/<repo>`, `/band validate`, `/band doctor`, `/band refresh`, `/band on <profile>`, `/pane`.
+In Claude Code: `/coordinator init <owner>/<repo>`, `/coordinator validate`, `/coordinator doctor`, `/coordinator refresh`, `/coordinator on <profile>`, `/pane`.
 
-In a terminal (`node bin/band.mjs ...`, or `band ...` if you install the package): `init`, `validate`, `doctor`, `refresh`, `show`, `graph`, `migrate`, `schedule install|status|uninstall`, `version`.
+In a terminal (`node bin/coordinator.mjs ...`, or `band ...` if you install the package): `init`, `validate`, `doctor`, `refresh`, `show`, `graph`, `migrate`, `schedule install|status|uninstall`, `version`.
 
 ## Privacy and safety
 
-- Read-only: the band only reads pull requests and issues. It never writes to GitHub.
+- Read-only: the coordinator only reads pull requests and issues. It never writes to GitHub.
 - It uses your own `gh` sign-in. Use a fine-grained read-only token. No secret goes in the config file.
 - It sends nothing to the authors or to any model. Service checks are off unless you list a URL, and only local addresses are accepted unless you allow more.
 
@@ -140,22 +140,22 @@ Details are in `docs/PRIVACY.md`.
 
 ## Troubleshooting
 
-Run `band doctor` first. The most common fixes:
+Run `coordinator doctor` first. The most common fixes:
 
 | You see | Do this |
 | --- | --- |
-| `No config yet` | `/band init <owner>/<repo>` |
+| `No config yet` | `/coordinator init <owner>/<repo>` |
 | `unavailable: ... "gh" is not installed` | Install from https://cli.github.com |
 | `unavailable: gh is not signed in` | `gh auth login` in a terminal |
 | No lanes | Check the label is on an open pull request: `gh pr list --repo <owner>/<repo> --label band` |
-| `run "band migrate"` | An older config file. `band migrate` updates it and keeps a backup. |
+| `run "coordinator migrate"` | An older config file. `coordinator migrate` updates it and keeps a backup. |
 
 More in `docs/TROUBLESHOOTING.md`.
 
 ## Roadmap
 
 - History: a "what changed since you last looked" summary and a sparkline of moving lanes over a day.
-- A shareable snapshot (HTML or Markdown) of the band for stand-ups.
+- A shareable snapshot (HTML or Markdown) of the coordinator for stand-ups.
 - More built-in sources (GitLab, Linear) and a source for CI status.
 - Colours that follow the light and dark theme exactly.
 

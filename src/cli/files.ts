@@ -1,14 +1,20 @@
-// Where things live in the band home directory, and safe ways to write them.
+// Where things live in the coordinator home directory, and safe ways to write them.
 
 import { randomBytes } from 'node:crypto'
 import { copyFile, mkdir, open, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 export const MIN_NODE = [22, 18] as const
 
+/** COORDINATOR_HOME, else ~/.claude-coordinator. A folder made before the rename (~/.coordinator-band) is used when it is the only one. */
 export function bandHome(): string {
-  return process.env.COORDINATOR_BAND_HOME || join(homedir(), '.coordinator-band')
+  const set = process.env.COORDINATOR_HOME || process.env.COORDINATOR_BAND_HOME
+  if (set) return set
+  const fresh = join(homedir(), '.claude-coordinator')
+  const legacy = join(homedir(), '.coordinator-band')
+  return !existsSync(fresh) && existsSync(legacy) ? legacy : fresh
 }
 
 export const paths = (home: string) => ({

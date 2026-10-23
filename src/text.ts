@@ -1,4 +1,4 @@
-// Plain-text drawing of a View, for `band show`, the README capture and tests.
+// Plain-text drawing of a View, for `coordinator show`, the README capture and tests.
 
 import type { BarPart, Line, View } from './view.ts'
 

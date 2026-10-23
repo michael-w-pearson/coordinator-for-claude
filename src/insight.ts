@@ -8,7 +8,7 @@ const HOUR = 3_600_000
 
 export type Next = { text: string; color: 'red' | 'yellow' | 'green' | 'cyan'; ask?: string; to?: string }
 
-/** A prompt for Claude about one lane. It holds the facts the band already knows. */
+/** A prompt for Claude about one lane. It holds the facts the coordinator already knows. */
 export function askText(lane: Lane): string {
   const bits = [`Look at ${lane.ref ?? lane.title}${lane.url ? ` (${lane.url})` : ''}: "${lane.title}".`, `It is in the ${lane.stage} stage and ${lane.status}.`]
   if (lane.blockedBy) bits.push(`Reason: ${lane.blockedBy}.`)

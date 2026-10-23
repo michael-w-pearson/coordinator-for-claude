@@ -142,7 +142,7 @@ test('a rule list in config replaces the default rules', async () => {
 test('old or broken files get a message naming the file, the versions and the fix', async () => {
   const none = loadConfig('{"profiles":{}}', 'config.json')
   expect(none.config).toBe(null)
-  expect(none.problems[0]?.message).toContain('band migrate')
+  expect(none.problems[0]?.message).toContain('coordinator migrate')
   const old = loadConfig('{"configVersion":0,"profiles":{}}', 'config.json')
   expect(old.problems[0]?.message).toContain('version 0 but this release needs version 1')
   const newer = loadConfig('{"configVersion":9,"profiles":{}}', 'config.json')

@@ -1,18 +1,18 @@
 # Configuration reference
 
-All settings live in one file: `config.json` in the band home folder.
+All settings live in one file: `config.json` in the coordinator home folder.
 
-The home folder is `~/.coordinator-band`. To use another folder, set the environment variable `COORDINATOR_BAND_HOME`.
+The home folder is `~/.claude-coordinator`. To use another folder, set the environment variable `COORDINATOR_BAND_HOME`.
 
 ```
-~/.coordinator-band/
+~/.claude-coordinator/
   config.json            your settings (you edit this)
   overrides/<name>.json  optional hand-written lanes and needs
   data/<name>.json       what the last refresh found (the program writes this)
   logs/refresh.log       one line per refresh
 ```
 
-The file has a version number. If your file is older or newer than the program, the band tells you which file, which versions, and what to run.
+The file has a version number. If your file is older or newer than the program, the coordinator tells you which file, which versions, and what to run.
 
 ## Top level
 
@@ -25,7 +25,7 @@ The file has a version number. If your file is older or newer than the program, 
 | `minMoving` | Show a hint when fewer lanes than this are moving. `0` turns the hint off. | `3` |
 | `stages` | The pipeline stages. See below. | plan, build, verify, review, merge-line, merged |
 | `statusColors` | Colour of the dot for `moving`, `waiting`, `blocked`, `done`. | green, yellow, red, gray |
-| `profiles` | One entry per band. | required |
+| `profiles` | One entry per view (for example one per project). | required |
 
 Colours: `green`, `yellow`, `red`, `cyan`, `blue`, `magenta`, `gray`, `white`. The default stages use one ramp from violet through blue and teal to green (plan to merged), with lightness rising so neighbours differ for colour-blind viewers. A stage colour can also be a hex value such as `#3fa7d6`.
 
@@ -66,7 +66,7 @@ If you change the stage ids, also change `rules` (below), because each rule name
 | `{ "always": true }` | in every session |
 | `{ "cwdContains": ["my-repo"] }` | the session's folder path contains the text |
 | `{ "sessions": ["<session id>"] }` | the session id is listed |
-| (left out) | only when it is the one profile in the file, or after `/band on <name>` |
+| (left out) | only when it is the one profile in the file, or after `/coordinator on <name>` |
 
 ### Sources
 
@@ -89,10 +89,10 @@ A source brings in lanes. You can list several. Lanes with the same `ref` (for e
 { "type": "file", "path": "overrides/main.json" }
 ```
 
-A relative path starts in the band home folder. See `examples/overrides.example.json`.
+A relative path starts in the coordinator home folder. See `examples/overrides.example.json`.
 Set `"lanes": false` to read only the needs from the file.
-Put `"updated": "<ISO time>"` at the top of the file and update it whenever you edit the lanes. The LANES header then shows how old your hand-written data is (`stale: data 8h old`). Without it the band cannot know.
-If a lane names a pull request (`ref`: `repo#12`) and that repo is listed in the github source, the band asks GitHub about it each refresh. A merged pull request becomes a done lane. A closed one is dropped.
+Put `"updated": "<ISO time>"` at the top of the file and update it whenever you edit the lanes. The LANES header then shows how old your hand-written data is (`stale: data 8h old`). Without it the coordinator cannot know.
+If a lane names a pull request (`ref`: `repo#12`) and that repo is listed in the github source, the coordinator asks GitHub about it each refresh. A merged pull request becomes a done lane. A closed one is dropped.
 Use this only to add what GitHub cannot know, or to correct a lane. A lane with the same `ref` as a GitHub lane keeps its live `state` text, and takes your `stage`, `status` and `blockedBy`.
 
 **`command`** (any program)
@@ -113,7 +113,7 @@ The program prints JSON on standard output. See `docs/SOURCES.md`.
 
 The `github` source also reads reviewers, the description and the milestone. All of it comes back in the same `gh pr list` call. Only merged pull requests need another call: one `gh pr list --state merged` per repository, at most once an hour.
 
-A pull request description that says `depends on #12` or `blocked by #12` makes a dependency. `band graph` prints the lanes and their dependencies as Mermaid text.
+A pull request description that says `depends on #12` or `blocked by #12` makes a dependency. `coordinator graph` prints the lanes and their dependencies as Mermaid text.
 
 ### Stage rules
 
@@ -145,16 +145,16 @@ To replace it, set `rules` on the source. A rule is `{ "when": { ... }, "stage":
 
 ### Merge line (optional)
 
-A merge line is a queue of pull requests that merge one at a time. The band does not know how your queue works. You give it a program that prints the queue.
+A merge line is a queue of pull requests that merge one at a time. The coordinator does not know how your queue works. You give it a program that prints the queue.
 
 ```json
 "mergeLine": { "command": ["my-queue-tool", "status"], "cwd": "/path/to/repo", "ttlMinutes": 30, "repo": "app" }
 ```
 
 The program must print `Head: #123` (the next to merge) and one `PR #124: note` line per waiting pull request. The note starts with `behind head`, `held`, `draft`, or free text. The section shows `Head #none` when there is no head.
-`file` is a JSON snapshot of the line that another tool keeps up to date (`generated_at`, `head`, `prs` with `number`, `set`, `blocker`, `owner`, `reason`). The band reads it on every pass, with no ttl and no GitHub calls, and uses it while it is younger than `maxAgeMinutes` (default 15). The section's age is the snapshot's own `generated_at`. When the file is missing, stale or unreadable, the band runs `command` as below, and a failure names both reasons.
+`file` is a JSON snapshot of the line that another tool keeps up to date (`generated_at`, `head`, `prs` with `number`, `set`, `blocker`, `owner`, `reason`). The coordinator reads it on every pass, with no ttl and no GitHub calls, and uses it while it is younger than `maxAgeMinutes` (default 15). The section's age is the snapshot's own `generated_at`. When the file is missing, stale or unreadable, the coordinator runs `command` as below, and a failure names both reasons.
 
-The command can be slow. The band runs it at most once per `ttlMinutes` (default 30) and keeps the last good result if a run fails. After a failure it waits twice as long for each failure in a row, up to 60 minutes, and a rate-limit error waits at least 30. `band refresh --force-merge-line` skips the wait. A status command that calls the GitHub API can cost hundreds of calls per run, so do not lower the ttl without a reason.
+The command can be slow. The coordinator runs it at most once per `ttlMinutes` (default 30) and keeps the last good result if a run fails. After a failure it waits twice as long for each failure in a row, up to 60 minutes, and a rate-limit error waits at least 30. `coordinator refresh --force-merge-line` skips the wait. A status command that calls the GitHub API can cost hundreds of calls per run, so do not lower the ttl without a reason.
 
 ### Codex Cloud (optional)
 
@@ -170,4 +170,4 @@ Shows tasks from `codex cloud list`. Off by default. A lane can show its task if
 "services": [ { "name": "api", "url": "http://127.0.0.1:3000/health" } ]
 ```
 
-The band sends one GET request to each URL once a minute and shows up or down. It only accepts addresses on your own machine or private network (`localhost`, `127.*`, `10.*`, `192.168.*`, `172.16-31.*`, `*.local`). To check another address, add `"allowRemote": true` to that entry. A page with a self-signed certificate shows as down. Use `http://` for local checks.
+The coordinator sends one GET request to each URL once a minute and shows up or down. It only accepts addresses on your own machine or private network (`localhost`, `127.*`, `10.*`, `192.168.*`, `172.16-31.*`, `*.local`). To check another address, add `"allowRemote": true` to that entry. A page with a self-signed certificate shows as down. Use `http://` for local checks.
