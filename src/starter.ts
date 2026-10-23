@@ -11,7 +11,7 @@ export function buildStarterConfig(opts: StarterOptions): Config {
     profiles: {
       [opts.name || 'main']: {
         match: { always: true },
-        sources: [{ type: 'github', owner: opts.owner, repos: opts.repos, label: opts.label || 'band', needsLabel: 'needs-me' }],
+        sources: [{ type: 'github', owner: opts.owner, repos: opts.repos, label: opts.label || 'coordinator', needsLabel: 'needs-me' }],
       },
     },
   }

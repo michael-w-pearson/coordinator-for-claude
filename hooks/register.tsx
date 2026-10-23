@@ -320,7 +320,7 @@ async function runCommand($: EngineInterface, e: unknown) {
     await tick($, true)
     ensureTimer($)
     void openPane($)
-    return { text: `Wrote ${path}. Add the label "${cfg.profiles.main?.sources[0] && 'label' in cfg.profiles.main.sources[0] ? cfg.profiles.main.sources[0].label : 'band'}" to a pull request in ${spec.owner}/${spec.repo} and it appears as a lane. Needs the GitHub tool: /coordinator doctor` }
+    return { text: `Wrote ${path}. Add the label "${cfg.profiles.main?.sources[0] && 'label' in cfg.profiles.main.sources[0] ? cfg.profiles.main.sources[0].label : 'coordinator'}" to a pull request in ${spec.owner}/${spec.repo} and it appears as a lane. Needs the GitHub tool: /coordinator doctor` }
   }
 
   if (sub === 'validate' || sub === 'doctor') {
@@ -468,9 +468,8 @@ export const register: Register = on => {
   })
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'band', description: 'Old name of /coordinator' })
     await $.command.register({ name: 'coordinator', description: 'Claude Coordinator: /coordinator init <owner>/<repo>, validate, refresh, doctor, on <profile>' })
-    await $.command.register({ name: 'pane', description: 'Open the coordinator pane' })
+    await $.command.register({ name: 'pane', description: 'Open the Coordinator pane' })
     // Only a session that matches a profile (its id, its folder, or /coordinator on) gets the pane, the timer and the fetches.
     await loadAll($).catch(() => {})
     if (profileName) {
@@ -487,5 +486,4 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'coordinator' }, runCommand)
-  on('command.run', { command: 'band' }, runCommand)
 }

@@ -7,7 +7,7 @@ test('the starter config passes validation with no problems', () => {
   const config = buildStarterConfig({ owner: 'example-org', repos: ['example-app', 'other-app'] })
   const loaded = loadConfig(JSON.stringify(config))
   expect(loaded.problems).toEqual([])
-  expect(loaded.config?.profiles.main?.sources[0]).toMatchObject({ type: 'github', label: 'band', repos: ['example-app', 'other-app'] })
+  expect(loaded.config?.profiles.main?.sources[0]).toMatchObject({ type: 'github', label: 'coordinator', repos: ['example-app', 'other-app'] })
   expect(Object.keys(buildStarterConfig({ name: 'work', owner: 'o', repos: ['r'], label: 'lane' }).profiles)).toEqual(['work'])
 })
 

@@ -53,7 +53,7 @@ export const INIT_HELP = `Usage: coordinator init [--name n] [--owner o] [--repo
 Writes a starter config for your GitHub repositories.
   --owner  GitHub user or organisation. Detected from this folder's git remote when you leave it out.
   --repos  Comma-separated repository names.
-  --label  Open pull requests with this label become lanes. Default "band".
+  --label  Open pull requests with this label become lanes. Default "coordinator".
   --name   Name of the profile. Default "main".
   --force  Replace an existing config (the old one is kept as config.json.bak).
   --yes    Never ask questions. Missing values then stop the command.`
@@ -81,7 +81,7 @@ export async function init(argv: string[]): Promise<number> {
   let owner = str(p, 'owner')
   let repos = str(p, 'repos') ? csv(str(p, 'repos') ?? '') : []
   const name = str(p, 'name') ?? 'main'
-  const label = str(p, 'label') ?? 'band'
+  const label = str(p, 'label') ?? 'coordinator'
   if (!NAME_OK.test(name)) { console.error(`--name "${name}" may only use letters, numbers, dots, dashes and underscores. Example: --name main`); return 2 }
 
   let detectedOwner = ''

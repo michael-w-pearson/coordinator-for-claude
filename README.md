@@ -47,7 +47,7 @@ Inside Claude Code, type:
 /coordinator init your-github-name/your-repo
 ```
 
-That writes a starter config and opens the pane. Now add the label `band` to a pull request in that repository. It appears as a lane within five minutes (or type `/coordinator refresh`).
+That writes a starter config and opens the pane. Now add the label `coordinator` to a pull request in that repository. It appears as a lane within five minutes (or type `/coordinator refresh`).
 
 Check that everything works:
 
@@ -82,7 +82,7 @@ Why "no tokens": the coordinator is plain code. Lanes are derived from GitHub fi
 
 In Claude Code: `/coordinator init <owner>/<repo>`, `/coordinator validate`, `/coordinator doctor`, `/coordinator refresh`, `/coordinator on <profile>`, `/pane`.
 
-In a terminal (`node bin/coordinator.mjs ...`, or `band ...` if you install the package): `init`, `validate`, `doctor`, `refresh`, `show`, `graph`, `migrate`, `schedule install|status|uninstall`, `version`.
+In a terminal (`node bin/coordinator.mjs ...`, or `coordinator ...` if you install the package): `init`, `validate`, `doctor`, `refresh`, `show`, `graph`, `migrate`, `schedule install|status|uninstall`, `version`.
 
 ## Privacy and safety
 
@@ -101,7 +101,7 @@ Run `coordinator doctor` first. The most common fixes:
 | `No config yet` | `/coordinator init <owner>/<repo>` |
 | `unavailable: ... "gh" is not installed` | Install from https://cli.github.com |
 | `unavailable: gh is not signed in` | `gh auth login` in a terminal |
-| No lanes | Check the label is on an open pull request: `gh pr list --repo <owner>/<repo> --label band` |
+| No lanes | Check the label is on an open pull request: `gh pr list --repo <owner>/<repo> --label coordinator` |
 | `run "coordinator migrate"` | An older config file. `coordinator migrate` updates it and keeps a backup. |
 
 More in `docs/TROUBLESHOOTING.md`.
