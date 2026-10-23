@@ -25,53 +25,7 @@ When several people, or several Claude sessions, work at once, the hard part is 
 
 ## What it looks like
 
-```
-┌─ N E X T    ─────────────────────────────────────────────────────────┐
-│ Answer: gh auth login --with-token accepts a token without the advertised workflow scope
-└──────────────────────────────────────────────────────────────────────┘
-┌─ N E E D S   Y O U   20 · ok · now ──────────────────────────────────┐
-│ ● gh auth login --with-token accepts a to… 19h
-│ ● `gh issue create --type` creates the is… 19h
-│ ● `gh skill update` help incorrectly prom… 19h
-│ ● gh pr close <URL> --delete-branch can f… 19h
-│ ● `gh pr merge <url> --delete-branch` rem… 19h
-│ ● `gh release create` does not recognise … 19h
-│ ● `gh issue create` issue type supports o… 19h
-│ ● gh pr close --comment silently discards… 19h
-│ … and 12 more
-└──────────────────────────────────────────────────────────────────────┘
-┌─ L A N E S   1/2 moving · ok · now ──────────────────────────────────┐
-│ 1 of 5 moving                                      4 waiting  0 done
-│ ████████████████████████████████████████████████████████████████████
-│ ■ plan                                                       0    0%
-│ ■ build                                                      1   20%
-│ ■ verify                                                     0    0%
-│ ■ review                                                     4   80%
-│ ■ merge-line                                                 0    0%
-│ ■ merged                                                     0    0%
-│
-│ ● release download: add --verify to… draft, blocked idle 1d
-│   ▰▰▱▱▱▱ build · being written
-│ ● fix(issue create): resolve --type… ready, blocked
-│   ▰▰▰▰▱▱ review · waiting on a reviewer or a fix
-│   ← awaiting review
-│   ⏳ @tidy-dev, @BagToad
-│ ● docs(skills): clarify that skill … ready, blocked
-│   ▰▰▰▰▱▱ review · waiting on a reviewer or a fix
-│   ← awaiting review
-│   ⏳ @niik
-│ ● docs(skills): add task triggers a… ready, blocked
-│   ▰▰▰▰▱▱ review · waiting on a reviewer or a fix
-│   ← awaiting review
-│   ⏳ @sergiou87
-│ ● docs: Add step to install working… ready, blocked
-│   ▰▰▰▰▱▱ review · waiting on a reviewer or a fix
-│   ← awaiting review
-│   ⏳ @sergiou87, @babakks
-│ Merged per day ▁▁▁▁█▁▁  1 in 7d
-│ Below 2 moving. No waiting lane to start.   [Refresh]
-└──────────────────────────────────────────────────────────────────────┘
-```
+![The Claude Coordinator panel showing the Next line, Needs you, Lanes and Flow sections](docs/pane-screenshot.png)
 
 The capture is real output of `coordinator show` on a public repository (`cli/cli`, lanes from the label `external`, needs from the label `bug`). It is the same text the pane draws. In Claude Code the pane adds colour, a thin stacked bar, and clickable buttons.
 
