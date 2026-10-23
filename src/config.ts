@@ -6,9 +6,9 @@ import { asRecord, isString, parseJson } from './util.ts'
 import type { Rec } from './util.ts'
 
 export const DEFAULT_STAGES: StageDef[] = [
-  { id: 'build', label: 'build', description: 'being written', color: 'yellow' },
-  { id: 'verify', label: 'verify', description: 'tests and checks running', color: 'yellow' },
-  { id: 'review', label: 'review', description: 'waiting on a reviewer or a fix', color: 'cyan' },
+  { id: 'build', label: 'build', description: 'being written', color: 'blue' },
+  { id: 'verify', label: 'verify', description: 'tests and checks running', color: 'magenta' },
+  { id: 'review', label: 'review', description: 'waiting on a reviewer or a fix', color: 'yellow' },
   { id: 'merge-line', label: 'merge-line', description: 'approved, queued to merge', color: 'cyan' },
   { id: 'merged', label: 'merged', description: 'done, in the main branch', color: 'green' },
 ]

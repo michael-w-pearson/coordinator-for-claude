@@ -4,7 +4,7 @@
 export type LaneStatus = 'moving' | 'waiting' | 'blocked' | 'done'
 
 /** A named color the terminal pane and the text renderer both understand. */
-export type Color = 'green' | 'yellow' | 'red' | 'cyan' | 'gray' | 'white'
+export type Color = 'green' | 'yellow' | 'red' | 'cyan' | 'blue' | 'magenta' | 'gray' | 'white'
 
 export type StageDef = { id: string; label: string; description: string; color: Color }
 
