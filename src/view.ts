@@ -164,7 +164,7 @@ function lanesSection(rec: SectionRecord<Lane[]>, config: Config, o: ViewOptions
       lines.push([seg(`  ✕ ${names.length > 0 ? `${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}` : lane.blockedBy}`, { color: 'red', dim: true })])
     }
     if (lane.waitingOn?.length && lane.status !== 'done') {
-      lines.push([seg(`  ⏳ ${lane.waitingOn.map(n => `@${n}`).join(', ')}${lane.since ? ` for ${ageLabel(lane.since, o.now)}` : ''}`, { dim: true })])
+      lines.push([seg(`  ⏳ ${lane.waitingOn.map(n => `@${n}`).join(', ')}${lane.since && o.now - lane.since >= 60_000 ? ` for ${ageLabel(lane.since, o.now)}` : ''}`, { dim: true })])
     }
     if (lane.dependsOn?.length) lines.push([seg(`  ⛓ waits on ${lane.dependsOn.join(', ')}`, { dim: true })])
     if (lane.status === 'blocked') lines.push([seg('  '), seg(lane.session ? '[Ask its session]' : '[Ask Claude]', { action: { kind: 'ask', text: askText(lane), ...(lane.session ? { to: lane.session.id } : {}) } })])

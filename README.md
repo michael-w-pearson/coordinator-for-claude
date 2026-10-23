@@ -1,58 +1,79 @@
 # coordinator-band
 
-A status band for [Claude Code](https://claude.com/claude-code). It shows your work as **lanes**, so you see at a glance what is moving, what waits, and what needs you.
+**See what your team's work is doing, at a glance, inside Claude Code.**
 
-- Every open pull request with a label (for example `band`) becomes a lane.
-- Each lane has a five-block pipeline strip: `build → verify → review → merge-line → merged`, and a plain-English line about the current stage.
-- A **NEEDS YOU** section lists the issues and pull requests that wait for you.
-- A **Next** line says what to do right now. Each lane shows its time in stage, failing check names, reviewers and dependencies. Lanes group into campaigns, and `band graph` draws them as a Mermaid diagram.
-- Alerts, a **Compact** view, a **Focus** view for the current repository, and an **Ask Claude** button on blocked lanes.
-- Optional sections: a merge queue, Codex Cloud tasks, local service checks. The merge-queue command can be expensive (hundreds of GitHub calls a run), so it runs at most every 30 minutes and backs off after a failure.
-- It never calls a language model. It costs **no tokens**. It reads GitHub with the `gh` tool and sends nothing anywhere else.
+A live panel for [Claude Code](https://claude.com/claude-code) that turns your open pull requests into lanes on a pipeline: `plan → build → verify → review → merge-line → merged`. It tells you what is moving, what is stuck and why, and what to do next. It reads GitHub, and it costs **no model tokens**.
+
+![license MIT](https://img.shields.io/badge/license-MIT-blue) ![node 22.18+](https://img.shields.io/badge/node-22.18%2B-green) ![no LLM tokens](https://img.shields.io/badge/LLM%20tokens-0-brightgreen)
+
+## Why
+
+When several people, or several Claude sessions, work at once, the hard part is not writing the code. It is knowing which pull request is waiting on whom, which one has failing checks, and which one nobody has touched for a day. GitHub shows a list. This shows a **pipeline**, and it keeps itself up to date beside your chat.
+
+## What you get
+
+- **A Next line.** One sentence at the top: "Merge #42", "Unblock: the login fix (2 checks failing)", "Nudge: the docs PR has sat in review for 30h". Plain rules, no model.
+- **Lanes by stage.** Every open pull request with your label becomes a lane. Six distinct colours run from violet (plan) to green (merged), so the stage reads at a glance and works for colour-blind viewers. Plans (docs-only changes) sit in their own stage before build.
+- **Why it is stuck.** Failing check names, who is asked to review, what it waits on, and how long it has been in the stage.
+- **Flow numbers.** Merged per day as a sparkline, and the median time work spends in each stage.
+- **Campaigns and dependencies.** Group lanes by a `campaign:` label or milestone. "Depends on #12" in a description draws a dependency tree, and `band graph` prints it as a Mermaid diagram you can paste into a document.
+- **Alerts that earn attention.** A toast, once, when a lane turns blocked, gets stuck, or the merge queue head changes.
+- **Ask Claude.** A button on blocked lanes sends a ready-made prompt to Claude, or to the session that owns the pull request.
+- **Compact and Focus views** for narrow panes and for the repository you are in.
+- **Honest ages.** Every section says how old its data is. A failed fetch never blanks a panel: the last good data stays, with its age and the reason.
+- **Any source.** GitHub is built in. A tiny `command` source lets any program add lanes: GitLab, Linear, Jira, CI.
+
+## What it looks like
 
 ```
-┌─ N E E D S   Y O U   20 · ok · now ────────────────────────────────────┐
-│ ● gh auth login --with-token accepts a to… 15h
-│ ● `gh issue create --type` creates the is… 15h
-│ ● `gh skill update` help incorrectly prom… 15h
-│ ● gh pr close <URL> --delete-branch can f… 15h
-│ ● `gh pr merge <url> --delete-branch` rem… 15h
-│ ● `gh release create` does not recognise … 15h
-│ ● `gh issue create` issue type supports o… 15h
-│ ● gh pr close --comment silently discards… 15h
+┌─ N E X T    ─────────────────────────────────────────────────────────┐
+│ Answer: gh auth login --with-token accepts a token without the advertised workflow scope
+└──────────────────────────────────────────────────────────────────────┘
+┌─ N E E D S   Y O U   20 · ok · now ──────────────────────────────────┐
+│ ● gh auth login --with-token accepts a to… 19h
+│ ● `gh issue create --type` creates the is… 19h
+│ ● `gh skill update` help incorrectly prom… 19h
+│ ● gh pr close <URL> --delete-branch can f… 19h
+│ ● `gh pr merge <url> --delete-branch` rem… 19h
+│ ● `gh release create` does not recognise … 19h
+│ ● `gh issue create` issue type supports o… 19h
+│ ● gh pr close --comment silently discards… 19h
 │ … and 12 more
-└────────────────────────────────────────────────────────────────────────┘
-┌─ L A N E S   1/2 moving · ok · now ────────────────────────────────────┐
-│ 1 of 5 moving                                        4 waiting  0 done
-│ ██████████████████████████████████████████████████████████████████████
-│ ■ build                                                        1   20%
-│ ■ verify                                                       0    0%
-│ ■ review                                                       4   80%
-│ ■ merge-line                                                   0    0%
-│ ■ merged                                                       0    0%
+└──────────────────────────────────────────────────────────────────────┘
+┌─ L A N E S   1/2 moving · ok · now ──────────────────────────────────┐
+│ 1 of 5 moving                                      4 waiting  0 done
+│ ████████████████████████████████████████████████████████████████████
+│ ■ plan                                                       0    0%
+│ ■ build                                                      1   20%
+│ ■ verify                                                     0    0%
+│ ■ review                                                     4   80%
+│ ■ merge-line                                                 0    0%
+│ ■ merged                                                     0    0%
 │
 │ ● release download: add --verify to… draft, blocked idle 1d
-│   ▰▱▱▱▱ build · being written
+│   ▰▰▱▱▱▱ build · being written
 │ ● fix(issue create): resolve --type… ready, blocked
-│   ▰▰▰▱▱ review · waiting on a reviewer or a fix
+│   ▰▰▰▰▱▱ review · waiting on a reviewer or a fix
 │   ← awaiting review
+│   ⏳ @tidy-dev, @BagToad
 │ ● docs(skills): clarify that skill … ready, blocked
-│   ▰▰▰▱▱ review · waiting on a reviewer or a fix
+│   ▰▰▰▰▱▱ review · waiting on a reviewer or a fix
 │   ← awaiting review
+│   ⏳ @niik
 │ ● docs(skills): add task triggers a… ready, blocked
-│   ▰▰▰▱▱ review · waiting on a reviewer or a fix
+│   ▰▰▰▰▱▱ review · waiting on a reviewer or a fix
 │   ← awaiting review
+│   ⏳ @sergiou87
 │ ● docs: Add step to install working… ready, blocked
-│   ▰▰▰▱▱ review · waiting on a reviewer or a fix
+│   ▰▰▰▰▱▱ review · waiting on a reviewer or a fix
 │   ← awaiting review
-│ Bar = build → verify → review → merge-line → merged
+│   ⏳ @sergiou87, @babakks
+│ Merged per day ▁▁▁▁█▁▁  1 in 7d
 │ Below 2 moving. No waiting lane to start.   [Refresh]
-└────────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-The capture above is real output of `band show` on a public repository (`cli/cli`, lanes from the label `external`, needs from the label `bug`). It is the same text the pane draws.
-
-The layout follows Claude's own panels: a headline number, a stacked bar, legend rows with a count and a share, a footer with one quiet button, and a status line (`band 3/5 moving · 1 needs you`) that stays visible when the pane is closed.
+The capture is real output of `band show` on a public repository (`cli/cli`, lanes from the label `external`, needs from the label `bug`). It is the same text the pane draws. In Claude Code the pane adds colour, a thin stacked bar, and clickable buttons.
 
 ## Install
 
@@ -107,7 +128,7 @@ Why "no tokens": the band is plain code. Lanes are derived from GitHub fields by
 
 In Claude Code: `/band init <owner>/<repo>`, `/band validate`, `/band doctor`, `/band refresh`, `/band on <profile>`, `/pane`.
 
-In a terminal (`node bin/band.mjs ...`, or `band ...` if you install the package): `init`, `validate`, `doctor`, `refresh`, `show`, `migrate`, `schedule install|status|uninstall`, `version`.
+In a terminal (`node bin/band.mjs ...`, or `band ...` if you install the package): `init`, `validate`, `doctor`, `refresh`, `show`, `graph`, `migrate`, `schedule install|status|uninstall`, `version`.
 
 ## Privacy and safety
 
@@ -133,10 +154,10 @@ More in `docs/TROUBLESHOOTING.md`.
 
 ## Roadmap
 
-- Sort lane cards by urgency and show a "stuck for 3h" tag.
-- A throughput sparkline (merged pull requests per day).
-- A compact mode for narrow panes, and colours that follow light and dark themes.
-- A "next action" line worked out by rules, such as "Merge #123: approved and green".
+- History: a "what changed since you last looked" summary and a sparkline of moving lanes over a day.
+- A shareable snapshot (HTML or Markdown) of the band for stand-ups.
+- More built-in sources (GitLab, Linear) and a source for CI status.
+- Colours that follow the light and dark theme exactly.
 
 ## Contributing
 

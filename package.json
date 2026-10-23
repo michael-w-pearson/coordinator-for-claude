@@ -1,6 +1,6 @@
 {
   "name": "coordinator-band",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A status band for Claude Code, built from your GitHub pull requests.",
   "type": "module",
   "bin": {

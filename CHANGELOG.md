@@ -2,7 +2,7 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/). Config and data files carry their own version numbers (`configVersion`, `dataVersion`). A change to either is marked **schema**.
 
-## [Unreleased]
+## [1.1.0] - 2026-10-23
 
 ### Added
 - Merge line `file`: read a JSON snapshot of the line first (no GitHub calls), and run `command` only when it is missing, stale (`maxAgeMinutes`, default 15) or unreadable.
