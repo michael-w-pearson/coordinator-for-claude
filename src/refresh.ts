@@ -66,6 +66,15 @@ export async function settleRefs(ctx: SourceContext, profile: ProfileConfig, lan
   })
 }
 
+/** A lane keeps its clock while it stays in a stage. A new stage, or a first sight, starts it now. */
+export function withSince(lanes: Lane[], prev: readonly Lane[], now: number): Lane[] {
+  const before = new Map(prev.flatMap(l => (l.ref ? [[l.ref, l] as const] : [])))
+  return lanes.map(l => {
+    const old = l.ref ? before.get(l.ref) : undefined
+    return { ...l, since: old && old.stage === l.stage && old.since ? old.since : now }
+  })
+}
+
 export async function fetchLanes(
   ctx: SourceContext,
   profile: ProfileConfig,
@@ -90,7 +99,7 @@ export async function fetchLanes(
       lanes.push(...(prev?.data ?? []).filter(l => l.source === id))
     }
   }
-  const merged = await settleRefs(ctx, profile, mergeLanes(lanes))
+  const merged = withSince(await settleRefs(ctx, profile, mergeLanes(lanes)), prev?.data ?? [], now)
   // The section is as old as the oldest hand-kept data in it, never newer than the fetch.
   const asOf = merged.flatMap(l => (l.asOf !== undefined ? [l.asOf] : []))
   const dataTime = Math.min(now, ...asOf)

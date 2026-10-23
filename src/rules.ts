@@ -95,3 +95,46 @@ export function describeFacts(row: Rec, facts: Facts): string {
   else if (facts.pending > 0) parts.push(`${facts.pending} running`)
   return parts.join(', ')
 }
+
+/** Names of the checks that failed, for the "why is it stuck" view. */
+export function failingNames(row: Rec): string[] {
+  const checks = Array.isArray(row.statusCheckRollup) ? row.statusCheckRollup : []
+  return checks.flatMap(raw => {
+    const c = asRecord(raw)
+    const result = String(c?.conclusion ?? '').toUpperCase() || String(c?.state ?? '').toUpperCase()
+    const name = c?.name ?? c?.context
+    return c && FAILED.has(result) && isString(name) ? [name] : []
+  })
+}
+
+/** Who is asked to review: user logins and team names. */
+export function reviewersOf(row: Rec): string[] {
+  const asked = Array.isArray(row.reviewRequests) ? row.reviewRequests : []
+  return asked.flatMap(r => {
+    const x = asRecord(r)
+    const name = x?.login ?? x?.name ?? x?.slug
+    return isString(name) ? [name] : []
+  })
+}
+
+const DEP = /(?:depends on|blocked by|waiting on|after)\s+((?:[\w.-]+\/)?[\w.-]*#\d+(?:\s*(?:,|and|&)\s*(?:[\w.-]+\/)?[\w.-]*#\d+)*)/gi
+
+/** Refs named after "depends on" or "blocked by" in the description, as "repo#n" (a bare "#n" means the same repo). */
+export function dependsOn(body: string, repo: string): string[] {
+  const out = new Set<string>()
+  for (const m of body.matchAll(DEP)) {
+    for (const ref of (m[1] ?? '').matchAll(/(?:([\w.-]+)\/)?([\w.-]*)#(\d+)/g)) {
+      out.add(`${ref[2] || ref[1] || repo}#${ref[3]}`)
+    }
+  }
+  return [...out]
+}
+
+/** The group a pull request belongs to: a label such as "campaign:launch", else its milestone. */
+export function campaignOf(row: Rec, labelPrefix: string): string | undefined {
+  const labels = Array.isArray(row.labels) ? row.labels.flatMap(l => (isString(asRecord(l)?.name) ? [String(asRecord(l)?.name)] : isString(l) ? [l] : [])) : []
+  const hit = labels.find(l => l.toLowerCase().startsWith(labelPrefix.toLowerCase()))
+  if (hit) return hit.slice(labelPrefix.length).trim() || hit
+  const title = asRecord(row.milestone)?.title
+  return isString(title) && title ? title : undefined
+}

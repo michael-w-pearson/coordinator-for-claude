@@ -2,8 +2,8 @@ import { expect, test } from 'claude-code/testing'
 
 import { DEFAULT_RULES, loadConfig, pickProfile } from '../src/config.ts'
 import { codexLaneLine, mergePosition, parseCodexList, parseMergeLine } from '../src/parsers.ts'
-import { fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, mergeLanes, refreshProfile } from '../src/refresh.ts'
-import { applyRules, factsOf } from '../src/rules.ts'
+import { withSince, fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, mergeLanes, refreshProfile } from '../src/refresh.ts'
+import { applyRules, campaignOf, dependsOn, factsOf, failingNames, reviewersOf } from '../src/rules.ts'
 import { badge } from '../src/state.ts'
 import type { ProfileConfig } from '../src/types.ts'
 import { fakeHost, fixture, NOW, okRun } from './helpers.ts'
@@ -178,4 +178,27 @@ test('merge line: a failing status command backs off and is not retried inside t
   rec = await run(rec)
   expect(calls()).toBe(4)
   expect(rec.retryAt! - clock).toBe(60 * 60_000) // never longer than the cap
+})
+
+test('lane facts: failing check names, reviewers, dependencies and campaigns come from the one list call', async () => {
+  expect(reviewersOf(byNumber(14727))).toEqual(['tidy-dev', 'BagToad'])
+  expect(failingNames(byNumber(13788)).length).toBe(3)
+  expect(dependsOn('Needs the parser. Depends on #12 and other/repo#7, blocked by #3.', 'app').sort()).toEqual(['app#12', 'app#3', 'repo#7'])
+  expect(dependsOn('Fixes #5', 'app')).toEqual([])
+  expect(campaignOf({ labels: [{ name: 'campaign:launch' }, { name: 'bug' }] }, 'campaign:')).toBe('launch')
+  expect(campaignOf({ labels: [], milestone: { title: 'v2' } }, 'campaign:')).toBe('v2')
+  expect(campaignOf({ labels: [] }, 'campaign:')).toBeUndefined()
+  const host = fakeHost(argv => (argv[0] === 'gh' && argv[1] === 'pr' ? okRun(fixture('gh-pr-list.json')) : undefined))
+  const rec = await fetchLanes({ host, profile: 'p', home: host.home }, profile, null)
+  const lane = rec.data.find(l => l.ref === 'cli#13788')
+  expect(lane?.checks?.length).toBe(3)
+  expect(lane?.waitingOn).toEqual(['babakks'])
+})
+
+test('a lane keeps its time in stage until the stage changes', async () => {
+  const lane = { title: 't', ref: 'a#1', state: '', stage: 'build', status: 'moving' as const }
+  const first = withSince([lane], [], 1000)
+  expect(first[0]?.since).toBe(1000)
+  expect(withSince([lane], first, 5000)[0]?.since).toBe(1000)
+  expect(withSince([{ ...lane, stage: 'review' }], first, 5000)[0]?.since).toBe(5000)
 })

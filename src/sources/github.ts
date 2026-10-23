@@ -2,14 +2,14 @@
 // Every call is a `gh pr list`, `gh pr view`, `gh issue view` or `gh search`. Nothing here writes to GitHub.
 
 import { DEFAULT_PLAN_PATHS, DEFAULT_PLAN_TITLE, DEFAULT_RULES, DEFAULTS } from '../config.ts'
-import { applyRules, describeFacts, factsOf } from '../rules.ts'
+import { applyRules, campaignOf, dependsOn, describeFacts, factsOf, failingNames, reviewersOf } from '../rules.ts'
 import { SourceError } from '../types.ts'
 import type { GithubSourceConfig, Host, Lane, Need, Requirement, Source, SourceContext } from '../types.ts'
 import { asRecord, firstLine, isString, parseJson } from '../util.ts'
 import type { Rec } from '../util.ts'
 
 // "files" comes back in the same call, so telling plans from code costs no extra request.
-export const GH_FIELDS = 'number,title,url,isDraft,mergeStateStatus,statusCheckRollup,reviewDecision,autoMergeRequest,labels,updatedAt,files'
+export const GH_FIELDS = 'number,title,url,isDraft,mergeStateStatus,statusCheckRollup,reviewDecision,autoMergeRequest,labels,updatedAt,files,reviewRequests,milestone,body'
 
 export const GH_REQUIREMENT: Requirement = { command: 'gh', install: 'https://cli.github.com (then run: gh auth login)' }
 
@@ -78,6 +78,10 @@ export const github: Source<GithubSourceConfig, Raw> = {
       state: describeFacts(raw, facts),
       ...(isString(raw.updatedAt) ? { updatedAt: raw.updatedAt } : {}),
       ...placed,
+      ...(failingNames(raw).length ? { checks: failingNames(raw).slice(0, 8) } : {}),
+      ...(reviewersOf(raw).length ? { waitingOn: reviewersOf(raw) } : {}),
+      ...(isString(raw.body) && dependsOn(raw.body, raw._repo).length ? { dependsOn: dependsOn(raw.body, raw._repo).filter(r => r !== `${raw._repo}#${raw.number}`) } : {}),
+      ...(campaignOf(raw, config.campaignPrefix ?? 'campaign:') ? { campaign: campaignOf(raw, config.campaignPrefix ?? 'campaign:') } : {}),
     }
   },
 

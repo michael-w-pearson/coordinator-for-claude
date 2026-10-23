@@ -43,6 +43,16 @@ export type Lane = {
   source?: string
   /** Epoch ms when a person or program last wrote this lane's hand-kept fields. Set from a feed's "updated". */
   asOf?: number
+  /** Epoch ms when the lane entered its current stage. Set by refresh from the last data. */
+  since?: number
+  /** Names of failing checks. */
+  checks?: string[]
+  /** People or teams asked to review. */
+  waitingOn?: string[]
+  /** Refs this lane waits for, such as "repo#12". */
+  dependsOn?: string[]
+  /** Group name: a campaign label or a milestone. */
+  campaign?: string
 }
 
 export type NeedOption = { label: string; text: string }
@@ -115,6 +125,8 @@ export type GithubSourceConfig = {
   planPaths?: string[]
   /** A pull request whose title matches this expression (case-insensitive) counts as a plan. */
   planTitle?: string
+  /** Labels starting with this text name a campaign (default "campaign:"). A milestone is used when no label matches. */
+  campaignPrefix?: string
 }
 export type FileSourceConfig = {
   type: 'file'

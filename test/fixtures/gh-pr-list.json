@@ -522,7 +522,10 @@
     "deletions": 0,
     "changeType": "ADDED"
    }
-  ]
+  ],
+  "reviewRequests": [],
+  "milestone": null,
+  "body": "No tracking issue yet; opening as a draft to discuss the design with a working implementation.\n\nFollowing [Working with us](https://github.com/cli/cli/blob/trunk/docs/working-with-us.md#step-0-create-an-extension), the same behavior is available today as an extension: [mrecachinas/gh-verify-download](https://github.com/mrecachinas/gh-verify-download) (`gh extension install mrecachinas/gh-verify-do"
  },
  {
   "autoMergeRequest": null,
@@ -702,7 +705,19 @@
     "deletions": 7,
     "changeType": "MODIFIED"
    }
-  ]
+  ],
+  "reviewRequests": [
+   {
+    "__typename": "User",
+    "login": "tidy-dev"
+   },
+   {
+    "__typename": "User",
+    "login": "BagToad"
+   }
+  ],
+  "milestone": null,
+  "body": "## Summary\n\nFixes #14703.\n\n`gh issue create --type <name>` resolved the type name only **after** `api.IssueCreate` had run. On a repository that has no issue types (all user-owned repositories, where `repository.issueTypes` is `null`) or with a misspelled name, the issue was created and then the command exited 1 without printing its URL, so scripts retried and filed duplicates.\n\nThis resolves `--t"
  },
  {
   "autoMergeRequest": null,
@@ -908,7 +923,15 @@
     "deletions": 2,
     "changeType": "MODIFIED"
    }
-  ]
+  ],
+  "reviewRequests": [
+   {
+    "__typename": "User",
+    "login": "niik"
+   }
+  ],
+  "milestone": null,
+  "body": "Bumps [actions/create-github-app-token](https://github.com/actions/create-github-app-token) from 3.2.0 to 3.3.0.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a href=\"https://github.com/actions/create-github-app-token/releases\">actions/create-github-app-token's releases</a>.</em></p>\n<blockquote>\n<h2>v3.3.0</h2>\n<h2><a href=\"https://github.com/actions/create-github-app-token/comp"
  },
  {
   "autoMergeRequest": null,
@@ -976,7 +999,10 @@
     "deletions": 13,
     "changeType": "MODIFIED"
    }
-  ]
+  ],
+  "reviewRequests": [],
+  "milestone": null,
+  "body": "Add some gh extension upgrade support for prereleases:\r\n- `--latest-pre-release` to make it easier to keep abreast of extension development\r\n- `--pin` to work with an explicit version, prerelease or otherwise, of an extension\r\n\r\nFixes https://github.com/cli/cli/issues/13968"
  },
  {
   "autoMergeRequest": null,
@@ -1132,7 +1158,15 @@
     "deletions": 4,
     "changeType": "MODIFIED"
    }
-  ]
+  ],
+  "reviewRequests": [
+   {
+    "__typename": "User",
+    "login": "BagToad"
+   }
+  ],
+  "milestone": null,
+  "body": "## Summary\n\n`gh issue create` creates the issue, then applies the deferred fields (type,\nparent, blocked-by, blocking) in a second step. When one of those mutations\nfails, `createRun` returns the error. The deferred `PreserveInput` sees a\nnon-nil error, writes a recovery file and prints:\n\n```\nX operation failed. To restore: gh issue create --recover /var/folders/.../gh2543392225.json\n\nGraphQL: mon"
  },
  {
   "autoMergeRequest": null,
@@ -1342,7 +1376,10 @@
     "deletions": 18,
     "changeType": "MODIFIED"
    }
-  ]
+  ],
+  "reviewRequests": [],
+  "milestone": null,
+  "body": "Fixes #8798\n\nSurface missing ProjectV2 `read:project` authorization failures when an issue or pull request is explicitly created with `--project`. Previously, an inaccessible requested ProjectV2 was reported as not found.\n\n- Preserve graceful ProjectV2 degradation for optional metadata, including `gh issue view` and `gh pr view`\n- Continue resolving matching classic projects even when ProjectV2 di"
  },
  {
   "autoMergeRequest": null,
@@ -1486,6 +1523,14 @@
     "deletions": 1,
     "changeType": "MODIFIED"
    }
-  ]
+  ],
+  "reviewRequests": [
+   {
+    "__typename": "User",
+    "login": "babakks"
+   }
+  ],
+  "milestone": null,
+  "body": "## Summary\n\nFixes #13546\n\n`DisplayURL` was using `u.Path` which is the unescaped version of the URL path. This caused branch names with special characters (like quotes) to be displayed incorrectly in the terminal when using `gh pr create --web`.\n\nFor example, a branch named `test-\"quoted\"-branch-pr` would display as:\n\n```\nhttps://github.com/OWNER/REPO/compare/...test-\"quoted\"-branch-pr\n```\n\nInstea"
  }
 ]
