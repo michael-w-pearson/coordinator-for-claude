@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Merge line `file`: read a JSON snapshot of the line first (no GitHub calls), and run `command` only when it is missing, stale (`maxAgeMinutes`, default 15) or unreadable.
 - **Next** line at the top: what to do right now (answer a question, merge the queue head, unblock, nudge a stuck lane, start a waiting lane). Rules only, no model.
 - **Time in stage** on every lane, amber past `stuckHours` (default 24), red past 72 h. **Flow** lines: merged per day (7-day sparkline) and median time in each stage. Merged pull requests are asked for once an hour, one `gh pr list` per repository.
 - **Why stuck**: failing check names, who is asked to review, and what a lane waits on ("depends on #12" in the description).

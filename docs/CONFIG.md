@@ -152,6 +152,8 @@ A merge line is a queue of pull requests that merge one at a time. The band does
 ```
 
 The program must print `Head: #123` (the next to merge) and one `PR #124: note` line per waiting pull request. The note starts with `behind head`, `held`, `draft`, or free text. The section shows `Head #none` when there is no head.
+`file` is a JSON snapshot of the line that another tool keeps up to date (`generated_at`, `head`, `prs` with `number`, `set`, `blocker`, `owner`, `reason`). The band reads it on every pass, with no ttl and no GitHub calls, and uses it while it is younger than `maxAgeMinutes` (default 15). The section's age is the snapshot's own `generated_at`. When the file is missing, stale or unreadable, the band runs `command` as below, and a failure names both reasons.
+
 The command can be slow. The band runs it at most once per `ttlMinutes` (default 30) and keeps the last good result if a run fails. After a failure it waits twice as long for each failure in a row, up to 60 minutes, and a rate-limit error waits at least 30. `band refresh --force-merge-line` skips the wait. A status command that calls the GitHub API can cost hundreds of calls per run, so do not lower the ttl without a reason.
 
 ### Codex Cloud (optional)
