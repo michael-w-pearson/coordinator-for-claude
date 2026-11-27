@@ -143,3 +143,14 @@ export function idleLabel(updatedAt: string | undefined, now: number): { label: 
 export function refillCandidates(lanes: readonly { title: string; status: string; blockedBy?: string }[]): string[] {
   return lanes.filter(lane => lane.status === 'waiting' && !lane.blockedBy).map(lane => shortName(lane.title))
 }
+
+/**
+ * Reads the answers an issue offers. A line "Options: A | B | C" lists them and "Recommendation: B" marks one.
+ * A title that starts with "fyi" is a note, not a decision.
+ */
+export function parseNeedBody(title: string, body: string): { kind: 'act' | 'fyi'; options: { label: string; text: string }[]; recommend?: string } {
+  const line = (name: string) => new RegExp(String.raw`^\s*${name}\s*:\s*(.+?)\s*$`, 'im').exec(body)?.[1]
+  const options = (line('Options') ?? '').split('|').map(s => s.trim()).filter(Boolean).slice(0, 4).map(label => ({ label, text: label }))
+  const recommend = line('Recommendation')
+  return { kind: /^\s*fyi\b/i.test(title) ? 'fyi' : 'act', options, ...(recommend ? { recommend } : {}) }
+}

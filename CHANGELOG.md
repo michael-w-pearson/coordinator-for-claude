@@ -2,6 +2,17 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/). Config and data files carry their own version numbers (`configVersion`, `dataVersion`). A change to either is marked **schema**.
 
+## [Unreleased]
+
+### Added
+- **Needs you** is easier to work through. A header says how many decisions wait on you and how many hours they have waited, with the count a day ago. **Done** hides a need until its text changes. **Mark all seen** greys what has not changed since. A long list shows five and **Show more** opens the rest. A title that starts with "fyi" goes to a folded **FYI and old** section.
+- An issue body can offer answers. A line `Options: A | B | C` adds buttons, and `Recommendation: B` puts B first, marked, in a **Top decisions** section above the rest. A need with no session of its own sends the answer to this session.
+- `links` in `config.json` (`{ "chrome": "<path to chrome.exe>", "profile": "Profile 1" }`) opens pane links in that Chrome profile, for example one signed in to GitHub.
+
+### Changed
+- A need is aged from when its issue was opened, not from when the pane first saw it.
+- The needs list shows five rows, not eight, and the rest opens with a button, not a dead "… and N more" line. The data file gains an optional `needsTrend` (no **schema** change).
+
 ## [1.1.0] - 2026-10-23
 
 ### Changed

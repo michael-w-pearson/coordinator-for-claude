@@ -71,7 +71,16 @@ export type Need = {
   to?: string
   /** Epoch ms when this need was first seen. Set by refresh. */
   firstSeen?: number
+  /** Epoch ms when the issue or pull request was opened, when the source knows it. The pane ages the need from here. */
+  createdAt?: number
+  /** "fyi" needs wait in a folded list. A title that starts with "fyi" sets it. */
+  kind?: 'act' | 'fyi'
+  /** The answer the issue author recommends: the option with this label is listed first and marked. */
+  recommend?: string
 }
+
+/** One reading of the waiting backlog, kept for the "24 h ago" comparison. */
+export type NeedsPoint = { at: number; open: number }
 
 export type MergeLineEntry = { n: string; note: string }
 export type MergeLineData = { head: string | null; entries: MergeLineEntry[] }
@@ -100,6 +109,8 @@ export type BandData = {
   codex: SectionRecord<CodexTask[]> | null
   services: SectionRecord<ServiceHealth[]> | null
   flow?: Flow
+  /** One point every ten minutes or so, for the last 26 hours. */
+  needsTrend?: NeedsPoint[]
 }
 
 // ---- Config ---------------------------------------------------------------
@@ -201,6 +212,8 @@ export type Config = {
   minMoving?: number
   stages?: StageDef[]
   statusColors?: Partial<Record<LaneStatus, Color>>
+  /** Open links in this Chrome profile, such as one signed in to GitHub. Unset: the app opens links as usual. */
+  links?: { chrome: string; profile?: string }
   profiles: Record<string, ProfileConfig>
 }
 

@@ -7,7 +7,7 @@ import { askText, campaigns, depTree, nextAction } from './insight.ts'
 import { blockerChain, codexLaneLine, idleLabel, mergePosition, refNumber, refillCandidates } from './parsers.ts'
 import { badge } from './state.ts'
 import type { Badge } from './state.ts'
-import type { BandData, CodexTask, Color, Config, Flow, Lane, LaneStatus, Need, SectionRecord, StageDef } from './types.ts'
+import type { BandData, CodexTask, Color, Config, Flow, Lane, LaneStatus, Need, NeedsPoint, SectionRecord, StageDef } from './types.ts'
 import { ageLabel, clock, truncate } from './util.ts'
 
 export type Seg = {
@@ -20,6 +20,7 @@ export type Seg = {
   block?: boolean
   /** A button. The host decides what pressing it does. */
   action?: { kind: 'choose'; needId: string; option: number } | { kind: 'refresh' } | { kind: 'ask'; text: string; to?: string }
+    | { kind: 'done'; needId: string } | { kind: 'seen-all' } | { kind: 'more'; id: string }
 }
 /** One row of a legend: a coloured square, a label on the left, a count and a share on the right. */
 export type LegendRow = { color: Color; label: string; value: string; pct: string }
@@ -28,7 +29,7 @@ export type HeadRow = { left: Seg[]; right: Seg[] }
 export type BarPart = { color: Color; n: number }
 export type Line = Seg[]
 export type SectionView = {
-  id: 'next' | 'needs' | 'lanes' | 'campaigns' | 'deps' | 'services' | 'mergeline' | 'codex'
+  id: 'next' | 'top' | 'needs' | 'fyi' | 'lanes' | 'campaigns' | 'deps' | 'services' | 'mergeline' | 'codex'
   title: string
   color: Color
   /** Short words on the header: "ok · 2m", "stale: data 40m old", "empty", "unavailable". */
@@ -42,15 +43,24 @@ export type SectionView = {
   /** The last row: a hint on the left and quiet buttons. */
   footer?: Line
   state: Badge['state']
+  /** The pane starts this section folded. */
+  folded?: boolean
   lines: Line[]
 }
 export type View = { title: string; sections: SectionView[] }
 
-const MAX_NEEDS = 8
 const seg = (text: string, rest: Omit<Seg, 'text'> = {}): Seg => ({ text, ...rest })
 const dim = (text: string): Line => [seg(text, { dim: true })]
 
-export type ViewOptions = { now: number; title: string; repoFilter?: string; compact?: boolean; /** Show only lanes of this repository name. */ focus?: string }
+export type ViewOptions = {
+  now: number; title: string; repoFilter?: string; compact?: boolean; /** Show only lanes of this repository name. */ focus?: string
+  /** Need id -> its text when pressed Done. The need stays hidden until its text changes. */
+  done?: Record<string, string>
+  /** Need id -> its text when pressed Mark all seen. A seen need that has not changed reads quieter. */
+  seen?: Record<string, string>
+  /** Section id -> true when "Show more" opened the whole list. */
+  more?: Record<string, boolean>
+}
 
 function shortBadge(b: Badge): string {
   return b.state === 'error' ? 'unavailable' : b.text
@@ -78,33 +88,81 @@ export function strip(stages: readonly StageDef[], stageId: string, failed: bool
   })
 }
 
-function needsSection(rec: SectionRecord<Need[]>, config: Config, o: ViewOptions, stale: number, answered: Record<string, string>): SectionView {
+const SHOWN_NEEDS = 5
+const TOP_DECISIONS = 3
+const hours = (ms: number): number => ms / 3_600_000
+
+/** What the backlog was about a day ago: the point nearest to 24 h back, within three hours of it. */
+function openADayAgo(trend: NeedsPoint[] | undefined, now: number): number | null {
+  const goal = now - 24 * 3_600_000
+  const near = (trend ?? []).filter(p => Math.abs(p.at - goal) <= 3 * 3_600_000).sort((a, b) => Math.abs(a.at - goal) - Math.abs(b.at - goal))[0]
+  return near ? near.open : null
+}
+
+function needLines(need: Need, o: ViewOptions, answered: Record<string, string>, recommended: boolean): Line[] {
+  const first = need.createdAt ?? need.firstSeen ?? o.now
+  const age = hours(o.now - first)
+  const fresh = o.now - (need.firstSeen ?? o.now) < 5 * 60_000
+  const old = o.seen?.[need.id] === need.text
+  const lines: Line[] = [[
+    seg('● ', { color: old ? 'gray' : 'red' }),
+    seg(truncate(need.text, 40), { ...(need.url ? { href: need.url } : {}), ...(old ? { dim: true } : {}) }),
+    seg(fresh ? ' ▲ NEW' : ` ${ageLabel(first, o.now)}`, { color: age >= 4 ? 'red' : age >= 1 ? 'yellow' : 'green', bold: fresh }),
+  ]]
+  const options = need.recommend
+    ? [...(need.options ?? []).filter(x => x.label === need.recommend), ...(need.options ?? []).filter(x => x.label !== need.recommend)]
+    : need.options ?? []
+  const buttons: Seg[] = answered[need.id]
+    ? [seg(`✓ sent: ${answered[need.id]}`, { color: 'green' })]
+    : options.map(opt => seg(`[${truncate(opt.label, 36)}${recommended && opt.label === need.recommend ? ' (recommended)' : ''}]`,
+      { action: { kind: 'choose', needId: need.id, option: (need.options ?? []).indexOf(opt) } }))
+  lines.push([seg('  '), ...buttons, ...(buttons.length ? [seg(' ')] : []), seg('[Done]', { action: { kind: 'done', needId: need.id } })])
+  return lines
+}
+
+function needsSections(rec: SectionRecord<Need[]>, config: Config, o: ViewOptions, stale: number, answered: Record<string, string>, trend?: NeedsPoint[]): SectionView[] {
   const b = badge(rec, rec.data.length === 0, o.now, stale)
+  const visible = rec.data.filter(n => o.done?.[n.id] !== n.text)
+  const quiet = visible.filter(n => n.kind === 'fyi')
+  const acts = visible.filter(n => n.kind !== 'fyi')
+  const top = acts.filter(n => n.recommend).slice(0, TOP_DECISIONS)
+  const rest = acts.filter(n => !top.includes(n))
+  const sections: SectionView[] = []
+
+  if (top.length > 0) {
+    sections.push({
+      id: 'top', title: `top ${top.length} decisions`, state: b.state, noteColor: 'gray', color: 'yellow', note: '',
+      lines: top.flatMap(n => needLines(n, o, answered, true)),
+    })
+  }
+
   const lines: Line[] = [...reasonLines(rec, b)]
-  if (rec.data.length === 0 && b.state !== 'error') lines.push([seg('Nothing needs you', { color: 'green' })])
-  for (const need of rec.data.slice(0, MAX_NEEDS)) {
-    const first = need.firstSeen ?? o.now
-    const hours = (o.now - first) / 3_600_000
-    const fresh = o.now - first < 5 * 60_000
-    const line: Line = [
-      seg('● ', { color: 'red' }),
-      seg(truncate(need.text, 40), need.url ? { href: need.url } : {}),
-      seg(fresh ? ' ▲ NEW' : ` ${ageLabel(first, o.now)}`, { color: hours >= 4 ? 'red' : hours >= 1 ? 'yellow' : 'green', bold: fresh }),
-    ]
-    lines.push(line)
-    if (need.options?.length) {
-      lines.push(answered[need.id]
-        ? [seg('  '), seg(`✓ sent: ${answered[need.id]}`, { color: 'green' })]
-        : [seg('  '), ...need.options.map((opt, i) => seg(`[${opt.label}]`, { action: { kind: 'choose', needId: need.id, option: i } }))])
-    }
+  if (acts.length === 0 && b.state !== 'error') lines.push([seg('Nothing needs you', { color: 'green' })])
+  const shown = o.more?.needs ? rest : rest.slice(0, SHOWN_NEEDS)
+  for (const need of shown) lines.push(...needLines(need, o, answered, false))
+  if (rest.length > SHOWN_NEEDS) lines.push([seg(o.more?.needs ? '[Show fewer]' : `[Show ${rest.length - SHOWN_NEEDS} more]`, { action: { kind: 'more', id: 'needs' } })])
+  if (visible.some(n => o.seen?.[n.id] !== n.text)) lines.push([seg('[Mark all seen]', { action: { kind: 'seen-all' } })])
+  const waited = acts.reduce((sum, n) => sum + hours(o.now - (n.createdAt ?? n.firstSeen ?? o.now)), 0)
+  const before = openADayAgo(trend, o.now)
+  const head: HeadRow | undefined = acts.length === 0 ? undefined : {
+    left: [seg(`${acts.length} decision${acts.length === 1 ? '' : 's'} wait on you`, { bold: true })],
+    right: [seg(`${Math.round(waited)} h of waiting${before === null ? '' : ` (24 h ago: ${before})`}`, { dim: true })],
   }
-  if (rec.data.length > MAX_NEEDS) lines.push(dim(`… and ${rec.data.length - MAX_NEEDS} more`))
-  return {
-    id: 'needs', title: 'needs you', state: b.state, noteColor: b.color,
-    color: rec.data.length > 0 ? 'red' : b.state === 'error' ? 'red' : 'green',
-    note: [rec.data.length > 0 ? String(rec.data.length) : '', shortBadge(b)].filter(Boolean).join(' · '),
+  sections.push({
+    id: 'needs', title: top.length > 0 ? 'more that needs you' : 'needs you', state: b.state, noteColor: b.color,
+    color: acts.length > 0 ? 'red' : b.state === 'error' ? 'red' : 'green',
+    note: [acts.length > 0 ? String(acts.length) : '', shortBadge(b)].filter(Boolean).join(' · '),
+    ...(head ? { head } : {}),
     lines,
+  })
+
+  if (quiet.length > 0) {
+    sections.push({
+      id: 'fyi', title: 'fyi and old', state: 'ok', noteColor: 'gray', color: 'gray', note: String(quiet.length), folded: true,
+      lines: quiet.flatMap(n => needLines(n, o, answered, false)),
+    })
   }
+  return sections
 }
 
 function lanesSection(rec: SectionRecord<Lane[]>, config: Config, o: ViewOptions, stale: number, codex: CodexTask[], flow?: Flow): SectionView {
@@ -276,7 +334,7 @@ export function buildView(data: BandData | null, config: Config, o: ViewOptions,
   }
   const sections: SectionView[] = [
     nextSection(data, config, o),
-    needsSection(data.needs, config, o, stale, answered),
+    ...needsSections(data.needs, config, o, stale, answered, data.needsTrend),
     lanesSection(data.lanes, config, o, stale, data.codex?.data ?? [], data.flow),
   ]
   const groups = campaigns(data)

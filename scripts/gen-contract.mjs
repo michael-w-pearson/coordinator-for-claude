@@ -38,6 +38,8 @@ declare module 'claude-code' {
       data: BandData | null
       answered: Record<string, string>
       collapsed: Record<string, boolean>
+      done: Record<string, string>
+      seen: Record<string, string>
     }
   }
 }
