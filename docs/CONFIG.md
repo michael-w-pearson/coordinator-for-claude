@@ -80,7 +80,7 @@ A source brings in lanes. You can list several. Lanes with the same `ref` (for e
 | `label` | Every open pull request with this label becomes a lane. |
 | `author` | Use `"@me"` to list only your own pull requests. Use it when you do not use a label. |
 | `limit` | Most pull requests per repo. Default 30. |
-| `needsLabel` | Open issues and pull requests with this label go under NEEDS YOU. Default `needs-me`. |
+| `needsLabel` | Open issues and pull requests with this label go under NEEDS YOU. Default `needs-me`. A line `Options: A | B | C` in the body adds answer buttons, and `Recommendation: B` puts B first in TOP DECISIONS. A title that starts with "fyi" goes to the folded FYI AND OLD section. |
 | `rules` | Replace the default stage rules. See below. |
 
 **`file`** (hand-written lanes and needs)

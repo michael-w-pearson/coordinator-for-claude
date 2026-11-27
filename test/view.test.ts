@@ -173,14 +173,59 @@ test('no profile makes any service call unless services are listed', async () =>
   expect(data.services).toBe(null)
 })
 
-test('a long needs list shows the first eight and counts the rest', async () => {
+// Changed requirement (rc-board synthesis): the cap is five and the rest opens with a button, not a dead "… and N more" line.
+test('a long needs list shows the first five, and Show more opens the rest', async () => {
   const cfg = config()
   const data = emptyData('main', cfg.profiles.main, NOW)
   data.needs = { data: Array.from({ length: 11 }, (_, i) => ({ id: 'n' + i, text: 'Need ' + i, firstSeen: NOW - 10 * MIN })), fetchedAt: NOW }
   const out = text(data, cfg)
-  expect(out).toContain('Need 7')
-  expect(out).not.toContain('Need 8')
-  expect(out).toContain('… and 3 more')
+  expect(out).toContain('Need 4')
+  expect(out).not.toContain('Need 5')
+  expect(out).toContain('[Show 6 more]')
+  const all = renderText(buildView(data, cfg, { now: NOW, title: 'Demo', more: { needs: true } }))
+  expect(all).toContain('Need 10')
+  expect(all).toContain('[Show fewer]')
+})
+
+const need = (id: string, rest: Record<string, unknown> = {}) => ({ id, text: `Need ${id}`, firstSeen: NOW - 10 * MIN, createdAt: NOW - 5 * 3_600_000, ...rest })
+const needsView = (needs: ReturnType<typeof need>[], o: Record<string, unknown> = {}, trend?: { at: number; open: number }[]) => {
+  const cfg = config()
+  const data = emptyData('main', cfg.profiles.main, NOW)
+  data.needs = { data: needs, fetchedAt: NOW }
+  if (trend) data.needsTrend = trend
+  return buildView(data, cfg, { now: NOW, title: 'Demo', ...o })
+}
+const section = (v: ReturnType<typeof buildView>, id: string) => v.sections.find(s => s.id === id)
+
+test('the needs header counts decisions and the hours they have waited, with the count a day ago', () => {
+  const v = needsView([need('a'), need('b')], {}, [{ at: NOW - 24 * 3_600_000 + 20 * MIN, open: 7 }])
+  const head = section(v, 'needs')!.head!
+  expect(head.left[0]!.text).toBe('2 decisions wait on you')
+  expect(head.right[0]!.text).toBe('10 h of waiting (24 h ago: 7)')
+  expect(section(needsView([need('a')]), 'needs')!.head!.right[0]!.text).toBe('5 h of waiting')
+})
+
+test('Done hides a need until its text changes, and Mark all seen quiets what has not changed', () => {
+  const done = needsView([need('a'), need('b')], { done: { a: 'Need a' } })
+  expect(section(done, 'needs')!.lines.flat().map(s => s.text).join(' ')).not.toContain('Need a')
+  const changed = needsView([need('a', { text: 'Need a, reworded' })], { done: { a: 'Need a' } })
+  expect(section(changed, 'needs')!.lines.flat().map(s => s.text).join(' ')).toContain('reworded')
+  const seen = needsView([need('a')], { seen: { a: 'Need a' } })
+  const lines = section(seen, 'needs')!.lines
+  expect(lines[0]![1]!.dim).toBe(true)
+  expect(lines.flat().some(s => s.action?.kind === 'seen-all')).toBe(false)
+})
+
+test('a recommended answer goes first and is marked, the top decisions sit above, and an fyi folds away', () => {
+  const options = [{ label: 'Keep Cloud', text: 'Keep Cloud' }, { label: 'Move local', text: 'Move local' }]
+  const v = needsView([need('a', { options, recommend: 'Move local' }), need('b'), need('c', { kind: 'fyi' })])
+  expect(v.sections.map(s => s.id).slice(0, 4)).toEqual(['next', 'top', 'needs', 'fyi'])
+  const buttons = section(v, 'top')!.lines[1]!.filter(s => s.action?.kind === 'choose')
+  expect(buttons.map(s => s.text)).toEqual(['[Move local (recommended)]', '[Keep Cloud]'])
+  expect(buttons[0]!.action).toEqual({ kind: 'choose', needId: 'a', option: 1 })
+  expect(section(v, 'needs')!.title).toBe('more that needs you')
+  expect(section(v, 'fyi')!.folded).toBe(true)
+  expect(section(v, 'needs')!.head!.left[0]!.text).toBe('2 decisions wait on you')
 })
 
 test('hand-kept lanes make the section as old as the file, and a merged pull request stops looking open', async () => {

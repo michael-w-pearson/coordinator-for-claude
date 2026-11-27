@@ -2,6 +2,7 @@
 // Every call is a `gh pr list`, `gh pr view`, `gh issue view` or `gh search`. Nothing here writes to GitHub.
 
 import { DEFAULT_PLAN_PATHS, DEFAULT_PLAN_TITLE, DEFAULT_RULES, DEFAULTS } from '../config.ts'
+import { parseNeedBody } from '../parsers.ts'
 import { applyRules, campaignOf, dependsOn, describeFacts, factsOf, failingNames, reviewersOf } from '../rules.ts'
 import { SourceError } from '../types.ts'
 import type { GithubSourceConfig, Host, Lane, Need, Requirement, Source, SourceContext } from '../types.ts'
@@ -91,7 +92,7 @@ export const github: Source<GithubSourceConfig, Raw> = {
     for (const kind of ['issues', 'prs']) {
       const value = await ghJson(ctx.host, [
         'search', kind, '--label', label, '--owner', config.owner, '--state', 'open',
-        '--json', 'repository,number,title,url', '--limit', '20',
+        '--json', 'repository,number,title,url,createdAt,body', '--limit', '20',
       ])
       if (!Array.isArray(value)) throw new SourceError(`gh search ${kind} did not return a list`)
       for (const entry of value) {
@@ -99,7 +100,14 @@ export const github: Source<GithubSourceConfig, Raw> = {
         const repository = asRecord(row?.repository)?.nameWithOwner ?? row?.repository
         if (!row || !isString(repository) || !isString(row.title) || !isString(row.url) || typeof row.number !== 'number') continue
         if (config.repos.length > 0 && !config.repos.some(r => repository.toLowerCase() === `${config.owner}/${r}`.toLowerCase())) continue
-        needs.push({ id: `${repository.toLowerCase()}#${row.number}`, text: row.title, url: row.url })
+        const read = parseNeedBody(row.title, isString(row.body) ? row.body : '')
+        const created = isString(row.createdAt) ? Date.parse(row.createdAt) : NaN
+        needs.push({
+          id: `${repository.toLowerCase()}#${row.number}`, text: row.title, url: row.url, kind: read.kind,
+          ...(Number.isNaN(created) ? {} : { createdAt: created }),
+          ...(read.options.length > 0 ? { options: read.options } : {}),
+          ...(read.recommend ? { recommend: read.recommend } : {}),
+        })
       }
     }
     return needs

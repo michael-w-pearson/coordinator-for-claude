@@ -1,8 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
 import { DEFAULT_RULES, loadConfig, pickProfile } from '../src/config.ts'
-import { codexLaneLine, mergePosition, parseCodexList, parseMergeLine, parseStatusFile } from '../src/parsers.ts'
-import { withSince, fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, mergeLanes, refreshProfile } from '../src/refresh.ts'
+import { codexLaneLine, mergePosition, parseCodexList, parseMergeLine, parseNeedBody, parseStatusFile } from '../src/parsers.ts'
+import { withSince, fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, mergeLanes, refreshProfile, trendOf } from '../src/refresh.ts'
 import { applyRules, campaignOf, dependsOn, factsOf, failingNames, reviewersOf } from '../src/rules.ts'
 import { badge } from '../src/state.ts'
 import type { ProfileConfig } from '../src/types.ts'
@@ -65,6 +65,23 @@ test('needs come from the recorded search output and keep their first-seen time'
   expect(rec.data.length).toBeGreaterThan(0)
   expect(rec.data[0]?.id).toMatch(/^cli\/cli#\d+$/)
   expect(rec.data[0]?.firstSeen).toBe(NOW)
+  expect(rec.data[0]?.createdAt).toBe(Date.parse('2026-11-27T13:38:15Z'))
+  expect(rec.data[0]?.kind).toBe('act')
+})
+
+test('a need body offers options and a recommendation, and an fyi title is a note', () => {
+  const body = ['Why now.', 'Options: Keep Cloud | Move local', 'Recommendation: Move local', ''].join('\n')
+  const read = parseNeedBody('Decide the hosting', body)
+  expect(read).toEqual({ kind: 'act', options: [{ label: 'Keep Cloud', text: 'Keep Cloud' }, { label: 'Move local', text: 'Move local' }], recommend: 'Move local' })
+  expect(parseNeedBody('FYI: the label is gone', 'nothing')).toEqual({ kind: 'fyi', options: [] })
+})
+
+test('the backlog trend keeps one point per ten minutes for 26 hours and ignores a failed fetch', () => {
+  const t0 = NOW - 30 * 3_600_000
+  const kept = trendOf([{ at: t0, open: 9 }, { at: NOW - 15 * 60_000, open: 4 }], 5, NOW - 10 * 60_000, true)
+  expect(kept).toEqual([{ at: NOW - 15 * 60_000, open: 4 }])
+  expect(trendOf(kept, 5, NOW, true)).toEqual([{ at: NOW - 15 * 60_000, open: 4 }, { at: NOW, open: 5 }])
+  expect(trendOf(kept, 5, NOW, false)).toEqual(kept)
 })
 
 test('merge line text parses; a failed run keeps the last good result and says why', async () => {

@@ -18,6 +18,9 @@ const loadState = { plugin: 'coordinator-for-claude', key: 'load' } as const
 const dataState = { plugin: 'coordinator-for-claude', key: 'data' } as const
 const answeredState = { plugin: 'coordinator-for-claude', key: 'answered' } as const
 const collapsedAtom = atom({ plugin: 'coordinator-for-claude', key: 'collapsed' } as const, {} as Record<string, boolean>)
+// Done and Mark all seen are kept across sessions in the mod's store, like a person's own reading state.
+const doneAtom = atom({ plugin: 'coordinator-for-claude', key: 'done' } as const, {} as Record<string, string>)
+const seenAtom = atom({ plugin: 'coordinator-for-claude', key: 'seen' } as const, {} as Record<string, string>)
 
 type Ui = ReturnType<EngineInterface['ui']['resolve']>
 
@@ -232,13 +235,24 @@ async function tick($: EngineInterface, force = false): Promise<void> {
   if (mode !== 'file' && (force || h.now() - lastRun.services >= 60_000)) await servicesRefresh($, h, profileName, config)
 }
 
+/** Done and Mark all seen: update the atom, then keep it in the store so it survives a new session. */
+async function markDone($: EngineInterface, prev: Record<string, string>, id: string, text: string): Promise<void> {
+  const next = { ...prev, [id]: text }
+  await update($, doneAtom, () => next)
+  await $.store.set('done', next)
+}
+async function markSeen($: EngineInterface, all: Record<string, string>): Promise<void> {
+  await update($, seenAtom, () => all)
+  await $.store.set('seen', all)
+}
+
 // ---- Drawing --------------------------------------------------------------
 
 const titleCase = (title: string): string => title.charAt(0).toUpperCase() + title.slice(1)
 
 type Act = NonNullable<Seg['action']>
 
-function Segments(props: { ui: Ui; line: Line; onAct: (a: Act) => void; id: string }) {
+function Segments(props: { ui: Ui; line: Line; onAct: (a: Act) => void; id: string; onLink?: (url: string) => void }) {
   const { Box, Button, Link, Text } = props.ui
   return (
     <Box flexDirection="row">
@@ -248,7 +262,11 @@ function Segments(props: { ui: Ui; line: Line; onAct: (a: Act) => void; id: stri
           const a = s.action
           return <Button key={key} label={s.text} onPress={() => props.onAct(a)} />
         }
-        if (s.href) return <Link key={key} href={s.href}>{s.text}</Link>
+        if (s.href) {
+          const href = s.href
+          const go = props.onLink
+          return go ? <Button key={key} plain onPress={() => go(href)}><Text color="suggestion" dimColor={s.dim}>{s.text}</Text></Button> : <Link key={key} href={href}>{s.text}</Link>
+        }
         if (s.block) {
           const fill = s.dim ? 'gray' : (s.color ?? 'gray')
           return <Box key={key} width={2} marginRight={1} backgroundColor={fill}><Text> </Text></Box>
@@ -259,7 +277,7 @@ function Segments(props: { ui: Ui; line: Line; onAct: (a: Act) => void; id: stri
   )
 }
 
-function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggle: () => void; onAct: (a: Act) => void }) {
+function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggle: () => void; onAct: (a: Act) => void; onLink?: (url: string) => void }) {
   const { Box, Button, Text } = props.ui
   const v = props.view
   return (
@@ -275,8 +293,8 @@ function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggl
         <Box flexDirection="column">
           {v.head ? (
             <Box flexDirection="row" justifyContent="space-between">
-              <Segments id={`${v.id}-hl`} ui={props.ui} line={v.head.left} onAct={props.onAct} />
-              <Segments id={`${v.id}-hr`} ui={props.ui} line={v.head.right} onAct={props.onAct} />
+              <Segments id={`${v.id}-hl`} ui={props.ui} line={v.head.left} onAct={props.onAct} {...(props.onLink ? { onLink: props.onLink } : {})} />
+              <Segments id={`${v.id}-hr`} ui={props.ui} line={v.head.right} onAct={props.onAct} {...(props.onLink ? { onLink: props.onLink } : {})} />
             </Box>
           ) : null}
           {v.bar ? (
@@ -296,8 +314,8 @@ function Section(props: { ui: Ui; view: SectionView; collapsed: boolean; onToggl
               </Box>
             </Box>
           ))}
-          {v.lines.map((line, i) => <Segments key={`${v.id}-line-${i}`} id={`${v.id}-${i}`} ui={props.ui} line={line} onAct={props.onAct} />)}
-          {v.footer && v.footer.some(s => s.text.trim()) ? <Segments id={`${v.id}-ft`} ui={props.ui} line={v.footer} onAct={props.onAct} /> : null}
+          {v.lines.map((line, i) => <Segments key={`${v.id}-line-${i}`} id={`${v.id}-${i}`} ui={props.ui} line={line} onAct={props.onAct} {...(props.onLink ? { onLink: props.onLink } : {})} />)}
+          {v.footer && v.footer.some(s => s.text.trim()) ? <Segments id={`${v.id}-ft`} ui={props.ui} line={v.footer} onAct={props.onAct} {...(props.onLink ? { onLink: props.onLink } : {})} /> : null}
         </Box>
       )}
     </Box>
@@ -397,8 +415,8 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const ui = $.ui.resolve(e)
     const { Box, Button, Text } = ui
-    const [load, data, answered, collapsed] = await Promise.all([
-      $.state.get(loadState), $.state.get(dataState), $.state.get(answeredState), read($, collapsedAtom),
+    const [load, data, answered, collapsed, done, seen] = await Promise.all([
+      $.state.get(loadState), $.state.get(dataState), $.state.get(answeredState), read($, collapsedAtom), read($, doneAtom), read($, seenAtom),
     ])
     const l = load.value
     if (!l || !l.config || !l.profile) {
@@ -420,6 +438,7 @@ export const register: Register = on => {
       ...(profile?.mergeLine?.repo ? { repoFilter: profile.mergeLine.repo } : {}),
       ...(collapsed.__compact ? { compact: true } : {}),
       ...(collapsed.__focus && focusRepo ? { focus: focusRepo } : {}),
+      done, seen, more: { needs: !!collapsed.__more_needs },
     }, answered.value ?? {})
     const toggle = (id: string) => () => update($, collapsedAtom, c => ({ ...c, [id]: !c[id] }))
     const choose = (needId: string, option: number) => {
@@ -428,8 +447,8 @@ export const register: Register = on => {
         const opt = need?.options?.[option]
         if (!need || !opt) return
         try {
-          const to = need.to && /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(need.to) ? { sessionId: need.to } : need.to
-          if (!to) { $.ui.toast('This need has no "to" session to send the reply to'); return }
+          // A need with no session of its own sends the answer to this session, which is the coordinator.
+          const to = need.to ? (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(need.to) ? { sessionId: need.to } : need.to) : { sessionId: await $.session.id() }
           await $.session.send({ to, text: opt.text })
           await $.state.set(answeredState, { ...(answered.value ?? {}), [needId]: opt.label })
           $.ui.toast(`Sent: ${opt.label}`)
@@ -448,9 +467,15 @@ export const register: Register = on => {
         }
       })()
     }
+    const needText = (id: string) => data.value?.needs.data.find(n => n.id === id)?.text ?? ''
+    const chrome = l.config.links
+    const openLink = chrome ? (url: string) => void $.process.run([chrome.chrome, ...(chrome.profile ? [`--profile-directory=${chrome.profile}`] : []), url]) : undefined
     const act = (a: NonNullable<Seg['action']>) => {
       if (a.kind === 'choose') choose(a.needId, a.option)
       else if (a.kind === 'ask') ask(a.text, a.to)
+      else if (a.kind === 'done') void markDone($, done, a.needId, needText(a.needId))
+      else if (a.kind === 'seen-all') void markSeen($, Object.fromEntries((data.value?.needs.data ?? []).map(n => [n.id, n.text])))
+      else if (a.kind === 'more') toggle(`__more_${a.id}`)()
       else void tick($, true).catch(() => {})
     }
     return (
@@ -461,7 +486,7 @@ export const register: Register = on => {
           {focusRepo ? <Button key="mode-focus" label={collapsed.__focus ? 'All repos' : `Focus ${focusRepo}`} onPress={toggle('__focus')} /> : null}
         </Box>
         {view.sections.map(s => (
-          <Section key={s.id} ui={ui} view={s} collapsed={!!collapsed[s.id]} onToggle={toggle(s.id)} onAct={act} />
+          <Section key={s.id} ui={ui} view={s} collapsed={collapsed[s.id] ?? !!s.folded} onToggle={() => update($, collapsedAtom, c => ({ ...c, [s.id]: !(c[s.id] ?? !!s.folded) }))} onAct={act} {...(openLink ? { onLink: openLink } : {})} />
         ))}
       </Box>
     )
@@ -472,6 +497,10 @@ export const register: Register = on => {
     await $.command.register({ name: 'pane', description: 'Open the Coordinator pane' })
     // Only a session that matches a profile (its id, its folder, or /coordinator on) gets the pane, the timer and the fetches.
     await loadAll($).catch(() => {})
+    const keptDone = (await $.store.get('done')) as Record<string, string> | undefined
+    if (keptDone) await update($, doneAtom, () => keptDone)
+    const keptSeen = (await $.store.get('seen')) as Record<string, string> | undefined
+    if (keptSeen) await update($, seenAtom, () => keptSeen)
     if (profileName) {
       await tick($).catch(() => {})
       ensureTimer($)

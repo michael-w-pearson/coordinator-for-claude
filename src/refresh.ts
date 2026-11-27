@@ -9,7 +9,7 @@ import { refState } from './sources/github.ts'
 import { SOURCES } from './sources/index.ts'
 import { DATA_VERSION, SourceError } from './types.ts'
 import type {
-  BandData, CodexTask, Host, Lane, MergeLineData, Need, ProfileConfig, SectionRecord, ServiceHealth, SourceContext,
+  BandData, CodexTask, Host, Lane, MergeLineData, Need, NeedsPoint, ProfileConfig, SectionRecord, ServiceHealth, SourceContext,
 } from './types.ts'
 import { firstLine } from './util.ts'
 
@@ -252,7 +252,15 @@ export async function refreshProfile(
     }
   }
   const flow = await fetchMerged(host, profile, updateFlow(prev?.flow, prev?.lanes.data ?? [], lanes.data, now), now)
-  return { dataVersion: DATA_VERSION, profile: name, generatedAt: now, lanes, needs, mergeLine, codex, services, flow }
+  const needsTrend = trendOf(prev?.needsTrend, needs.data.filter(n => n.kind !== 'fyi').length, now, needs.error === undefined)
+  return { dataVersion: DATA_VERSION, profile: name, generatedAt: now, lanes, needs, mergeLine, codex, services, flow, needsTrend }
+}
+
+/** Keeps one point every ten minutes for 26 hours, so the pane can say what the backlog was a day ago. A failed fetch adds none. */
+export function trendOf(prev: NeedsPoint[] | undefined, open: number, now: number, fetched: boolean): NeedsPoint[] {
+  const kept = (prev ?? []).filter(p => now - p.at <= 26 * 3_600_000)
+  const last = kept[kept.length - 1]
+  return fetched && (!last || now - last.at >= 10 * 60_000) ? [...kept, { at: now, open }] : kept
 }
 
 export { empty as emptySection }
