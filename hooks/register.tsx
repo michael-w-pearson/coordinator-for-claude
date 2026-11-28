@@ -5,7 +5,7 @@ import { DEFAULT_STAGES, loadConfig, pickProfile } from '../src/config.ts'
 import { alerts } from '../src/insight.ts'
 import { fetchMerged, updateFlow } from '../src/flow.ts'
 import { checkData, emptyData, refreshMs } from '../src/data.ts'
-import { fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, fetchServices } from '../src/refresh.ts'
+import { fetchAppSessions, fetchCodex, fetchLanes, fetchMergeLine, fetchNeeds, fetchServices } from '../src/refresh.ts'
 import { buildStarterConfig, parseGithubRemote, STARTER_OVERRIDE } from '../src/starter.ts'
 import type { BandData, Config, Host } from '../src/types.ts'
 import { firstLine } from '../src/util.ts'
@@ -65,6 +65,13 @@ async function makeHost($: EngineInterface): Promise<Host> {
         }
         throw err
       }
+    },
+    async appSessions(limit) {
+      // The desktop app's own session tool. Its folder on disk is private to the app.
+      const reply = await $.mcp.call('ccd_session_mgmt', 'list_sessions', { limit })
+      const text = reply.content.map(c => (c.type === 'text' ? c.text : '')).join('\n')
+      if (reply.isError) throw new Error(text || 'the app refused the session list')
+      return text
     },
     async http(url, ms) {
       const reply = await Promise.race([
@@ -200,6 +207,12 @@ async function selfRefresh($: EngineInterface, h: Host, name: string, cfg: Confi
     jobs.push(section('codex', async () => {
       const rec = await fetchCodex(h, profile.codexCloud!, current?.codex)
       if (current) await putData($, { ...current, codex: rec })
+    }))
+  }
+  if (profile.appSessions) {
+    jobs.push(section('sessions', async () => {
+      const rec = await fetchAppSessions(h, profile.appSessions!, current?.appSessions)
+      if (current) await putData($, { ...current, appSessions: rec })
     }))
   }
   await Promise.all(jobs)

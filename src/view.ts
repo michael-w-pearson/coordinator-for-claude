@@ -7,7 +7,7 @@ import { askText, campaigns, depTree, nextAction } from './insight.ts'
 import { blockerChain, codexLaneLine, idleLabel, mergePosition, refNumber, refillCandidates } from './parsers.ts'
 import { badge } from './state.ts'
 import type { Badge } from './state.ts'
-import type { BandData, CodexTask, Color, Config, Flow, Lane, LaneStatus, Need, NeedsPoint, SectionRecord, StageDef } from './types.ts'
+import type { AppSession, BandData, CodexTask, Color, Config, Flow, Lane, LaneStatus, Need, NeedsPoint, SectionRecord, StageDef } from './types.ts'
 import { ageLabel, clock, truncate } from './util.ts'
 
 export type Seg = {
@@ -29,7 +29,7 @@ export type HeadRow = { left: Seg[]; right: Seg[] }
 export type BarPart = { color: Color; n: number }
 export type Line = Seg[]
 export type SectionView = {
-  id: 'next' | 'top' | 'needs' | 'fyi' | 'lanes' | 'campaigns' | 'deps' | 'services' | 'mergeline' | 'codex'
+  id: 'next' | 'top' | 'needs' | 'fyi' | 'lanes' | 'campaigns' | 'deps' | 'services' | 'mergeline' | 'codex' | 'sessions'
   title: string
   color: Color
   /** Short words on the header: "ok · 2m", "stale: data 40m old", "empty", "unavailable". */
@@ -324,6 +324,39 @@ function depsSection(rows: ReturnType<typeof depTree>, config: Config): SectionV
   return { id: 'deps', title: 'dependencies', color: 'gray', state: 'ok', note: `${rows.length}`, noteColor: 'gray', lines }
 }
 
+/** The app's sessions by what they wait on. A title seen three times or more while idle is a scheduled job's leftovers. */
+export function sessionsSection(rec: SectionRecord<AppSession[]>, o: ViewOptions, stale: number): SectionView {
+  const b = badge(rec, rec.data.length === 0, o.now, stale)
+  const lines: Line[] = [...reasonLines(rec, b)]
+  const idleCount = new Map<string, number>()
+  for (const s of rec.data) if (!s.running) idleCount.set(s.title, (idleCount.get(s.title) ?? 0) + 1)
+  const leftover = (s: AppSession) => !s.running && (idleCount.get(s.title) ?? 0) >= 3
+  const kept = rec.data.filter(s => !leftover(s))
+  const open = kept.filter(s => s.prState === 'OPEN')
+  const running = kept.filter(s => s.running && s.prState !== 'OPEN')
+  const done = kept.filter(s => !s.running && (s.prState === 'MERGED' || s.prState === 'CLOSED'))
+  const idle = kept.filter(s => !s.running && !s.prState)
+  const row = (s: AppSession): Line => [
+    seg('● ', { color: s.running ? 'green' : s.prState === 'OPEN' ? 'yellow' : 'gray' }),
+    seg(truncate(s.title, 44), s.link ? { href: s.link } : {}),
+    seg(`${s.prNumber ? `  #${s.prNumber}` : ''}  ${ageLabel(s.lastActivityAt, o.now)}`, { dim: true }),
+  ]
+  const group = (title: string, list: AppSession[]) => {
+    if (list.length === 0) return
+    lines.push([seg(`${title} (${list.length})`, { bold: true })])
+    for (const s of list) lines.push(row(s))
+  }
+  group('open PR', open)
+  group('running, no open PR', running)
+  group('idle, no PR', idle)
+  if (done.length > 0) lines.push(dim(`${done.length} done (PR merged or closed): archive them`))
+  for (const [title, n] of idleCount) if (n >= 3) lines.push(dim(`${n} leftover "${truncate(title, 30)}" sessions`))
+  return {
+    id: 'sessions', title: 'sessions', color: 'cyan', state: b.state, noteColor: b.color,
+    note: b.state === 'ok' ? `${open.length} PR · ${running.length} running` : shortBadge(b), lines,
+  }
+}
+
 export function buildView(data: BandData | null, config: Config, o: ViewOptions, answered: Record<string, string> = {}): View {
   const stale = (config.refresh?.staleAfterMinutes ?? DEFAULTS.staleAfterMinutes) * 60_000
   if (!data) {
@@ -341,6 +374,7 @@ export function buildView(data: BandData | null, config: Config, o: ViewOptions,
   if (groups.length > 0) sections.push(campaignsSection(groups))
   const tree = depTree(data.lanes.data)
   if (tree.length > 0) sections.push(depsSection(tree, config))
+  if (data.appSessions) sections.push(sessionsSection(data.appSessions, o, stale))
   if (data.services) sections.push(servicesSection(data.services, o, stale))
   if (data.mergeLine) sections.push(mergeLineSection(data.mergeLine, data.lanes.data, o, stale))
   if (data.codex) sections.push(codexSection(data.codex, o, stale))

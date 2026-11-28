@@ -99,6 +99,18 @@ export type Flow = {
 }
 
 /** The data file for one profile. The refresher writes it. The pane reads it. */
+/** One Claude desktop app session, as the app's own session list reports it. */
+export type AppSession = {
+  id: string
+  title: string
+  running: boolean
+  lastActivityAt: number
+  prState?: 'OPEN' | 'MERGED' | 'CLOSED'
+  prNumber?: number
+  group?: string
+  link?: string
+}
+
 export type BandData = {
   dataVersion: number
   profile: string
@@ -108,6 +120,8 @@ export type BandData = {
   mergeLine: SectionRecord<MergeLineData> | null
   codex: SectionRecord<CodexTask[]> | null
   services: SectionRecord<ServiceHealth[]> | null
+  /** The desktop app's sessions. Only the mod can read them. */
+  appSessions?: SectionRecord<AppSession[]> | null
   flow?: Flow
   /** One point every ten minutes or so, for the last 26 hours. */
   needsTrend?: NeedsPoint[]
@@ -193,6 +207,8 @@ export type ProfileConfig = {
   services?: ServiceConfig[]
   /** Where the Claude desktop app keeps its session records. Turns on "ask its session". Read-only. */
   sessions?: { dir: string; days?: number }
+  /** Show the desktop app's own sessions in a section. Only the mod can read them. */
+  appSessions?: { limit?: number }
 }
 
 export type RefreshConfig = {
@@ -234,6 +250,8 @@ export type Host = {
   home: string
   /** Text of the JSON files under `dir` changed in the last `days` days. Only the command-line host has it. */
   recentJson?(dir: string, days: number): Promise<string[]>
+  /** The desktop app's session list as JSON text. Only the mod host has it. */
+  appSessions?(limit: number): Promise<string>
 }
 
 /** A thing a source needs on the machine, with how to get it. */

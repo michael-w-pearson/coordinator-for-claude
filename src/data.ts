@@ -41,6 +41,7 @@ export function emptyData(name: string, profile: ProfileConfig | undefined, now:
     mergeLine: profile?.mergeLine ? waiting({ head: null, entries: [] }) : null,
     codex: profile?.codexCloud?.enabled ? waiting([]) : null,
     services: profile?.services && profile.services.length > 0 ? waiting([]) : null,
+    appSessions: profile?.appSessions ? waiting([]) : null,
   }
 }
 

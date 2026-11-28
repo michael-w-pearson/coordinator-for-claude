@@ -110,6 +110,7 @@ The program prints JSON on standard output. See `docs/SOURCES.md`.
 | `stuckHours` | top level | Hours in one stage before a lane counts as stuck. Default 24. |
 | `campaignPrefix` | github source | A label starting with this names the campaign. Default `campaign:`. A milestone is used when no label fits. |
 | `sessions.dir` | profile | The folder where the Claude desktop app keeps its session records. Turns the **Ask** button into "ask its session". Read-only. The record format is the app's own and can change. |
+| `appSessions` | profile | `{ "limit": 100 }` shows the desktop app's own sessions in a **sessions** section. The mod reads them through the app's session tool. The command-line `coordinator show` cannot. |
 
 The `github` source also reads reviewers, the description and the milestone. All of it comes back in the same `gh pr list` call. Only merged pull requests need another call: one `gh pr list --state merged` per repository, at most once an hour.
 
