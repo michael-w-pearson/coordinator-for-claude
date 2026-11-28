@@ -1,0 +1,134 @@
+[
+  {
+    "sessionId": "local_00000000-0000-0000-0000-000000000000",
+    "title": "Session 0",
+    "cwd": "C:/work/repo",
+    "branch": "claude/b0",
+    "isArchived": false,
+    "isRunning": true,
+    "prNumber": 1,
+    "prState": "OPEN",
+    "lastActivityAt": "2026-11-28T09:33:13.676Z",
+    "group": {
+      "id": "g1",
+      "name": "Team"
+    },
+    "link": "claude://session/0",
+    "remoteControlActive": true
+  },
+  {
+    "sessionId": "local_00000001-0000-0000-0000-000000000000",
+    "title": "Session 1",
+    "cwd": "C:/work/repo",
+    "isArchived": false,
+    "isRunning": false,
+    "prNumber": 1,
+    "prState": "OPEN",
+    "lastActivityAt": "2026-11-28T07:13:58.553Z",
+    "group": {
+      "id": "g1",
+      "name": "Team"
+    },
+    "link": "claude://session/1",
+    "remoteControlActive": false
+  },
+  {
+    "sessionId": "local_00000002-0000-0000-0000-000000000000",
+    "title": "Session 2",
+    "cwd": "C:/work/repo",
+    "branch": "claude/b2",
+    "isArchived": false,
+    "isRunning": false,
+    "prNumber": 1,
+    "prState": "MERGED",
+    "lastActivityAt": "2026-11-28T09:33:40.898Z",
+    "group": {
+      "id": "g1",
+      "name": "Team"
+    },
+    "link": "claude://session/2",
+    "remoteControlActive": true
+  },
+  {
+    "sessionId": "local_00000003-0000-0000-0000-000000000000",
+    "title": "Session 3",
+    "cwd": "C:/work/repo",
+    "branch": "claude/b3",
+    "isArchived": false,
+    "isRunning": false,
+    "prNumber": 1,
+    "prState": "CLOSED",
+    "lastActivityAt": "2026-11-28T09:17:47.813Z",
+    "group": {
+      "id": "g1",
+      "name": "Team"
+    },
+    "link": "claude://session/3",
+    "remoteControlActive": true
+  },
+  {
+    "sessionId": "local_00000004-0000-0000-0000-000000000000",
+    "title": "Session 4",
+    "cwd": "C:/work/repo",
+    "branch": "claude/b4",
+    "isArchived": false,
+    "isRunning": false,
+    "lastActivityAt": "2026-11-28T09:31:14.741Z",
+    "group": {
+      "id": "g1",
+      "name": "Team"
+    },
+    "link": "claude://session/4",
+    "remoteControlActive": true
+  },
+  {
+    "sessionId": "local_00000005-0000-0000-0000-000000000000",
+    "title": "Session 5",
+    "cwd": "C:/work/repo",
+    "branch": "claude/b5",
+    "isArchived": false,
+    "isRunning": true,
+    "prNumber": 1,
+    "prState": "MERGED",
+    "lastActivityAt": "2026-11-28T09:33:37.351Z",
+    "group": {
+      "id": "g1",
+      "name": "Team"
+    },
+    "link": "claude://session/5",
+    "remoteControlActive": true
+  },
+  {
+    "sessionId": "local_00000006-0000-0000-0000-000000000000",
+    "title": "Nightly job",
+    "cwd": "C:/work/repo",
+    "isArchived": false,
+    "isRunning": false,
+    "lastActivityAt": "2026-11-28T09:17:49.805Z",
+    "group": null,
+    "link": "claude://session/6",
+    "remoteControlActive": false
+  },
+  {
+    "sessionId": "local_00000007-0000-0000-0000-000000000000",
+    "title": "Nightly job",
+    "cwd": "C:/work/repo",
+    "isArchived": false,
+    "isRunning": false,
+    "lastActivityAt": "2026-11-28T07:37:37.444Z",
+    "group": null,
+    "link": "claude://session/7",
+    "remoteControlActive": false
+  },
+  {
+    "sessionId": "local_00000008-0000-0000-0000-000000000000",
+    "title": "Nightly job",
+    "cwd": "C:/work/repo",
+    "isArchived": false,
+    "isRunning": false,
+    "lastActivityAt": "2026-11-28T04:37:42.014Z",
+    "group": null,
+    "link": "claude://session/8",
+    "remoteControlActive": false
+  }
+]

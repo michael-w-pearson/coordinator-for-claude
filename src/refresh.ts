@@ -9,9 +9,10 @@ import { refState } from './sources/github.ts'
 import { SOURCES } from './sources/index.ts'
 import { DATA_VERSION, SourceError } from './types.ts'
 import type {
+  AppSession,
   BandData, CodexTask, Host, Lane, MergeLineData, Need, NeedsPoint, ProfileConfig, SectionRecord, ServiceHealth, SourceContext,
 } from './types.ts'
-import { firstLine } from './util.ts'
+import { asRecord, firstLine, isString } from './util.ts'
 
 const empty = <T>(data: T): SectionRecord<T> => ({ data, fetchedAt: null, error: 'not fetched yet' })
 
@@ -223,6 +224,42 @@ export async function fetchServices(
     }
   }))
   return ok(data, now)
+}
+
+/** The desktop app's list_sessions answer: a JSON array, maybe after a line of text. Unreadable rows are skipped. */
+export function parseAppSessions(text: string): AppSession[] {
+  const start = text.indexOf('[')
+  if (start < 0) throw new SourceError('the app gave no session list')
+  let rows: unknown
+  try { rows = JSON.parse(text.slice(start)) } catch { throw new SourceError('the app session list is not valid JSON') }
+  if (!Array.isArray(rows)) throw new SourceError('the app session list is not a list')
+  const out: AppSession[] = []
+  for (const raw of rows) {
+    const r = asRecord(raw)
+    if (!r || !isString(r.sessionId) || !isString(r.title) || r.isArchived === true) continue
+    const at = isString(r.lastActivityAt) ? Date.parse(r.lastActivityAt) : NaN
+    const pr = r.prState === 'OPEN' || r.prState === 'MERGED' || r.prState === 'CLOSED' ? r.prState : undefined
+    const group = asRecord(r.group)?.name
+    out.push({
+      id: r.sessionId, title: r.title, running: r.isRunning === true, lastActivityAt: Number.isNaN(at) ? 0 : at,
+      ...(pr ? { prState: pr } : {}), ...(typeof r.prNumber === 'number' ? { prNumber: r.prNumber } : {}),
+      ...(isString(group) ? { group } : {}), ...(isString(r.link) ? { link: r.link } : {}),
+    })
+  }
+  return out
+}
+
+export async function fetchAppSessions(
+  host: Host,
+  cfg: NonNullable<ProfileConfig['appSessions']>,
+  prev: SectionRecord<AppSession[]> | null | undefined,
+): Promise<SectionRecord<AppSession[]>> {
+  if (!host.appSessions) return failed(prev, [], 'only the mod can read the app sessions')
+  try {
+    return ok(parseAppSessions(await host.appSessions(cfg.limit ?? 100)), host.now())
+  } catch (err) {
+    return failed(prev, [], reasonOf(err))
+  }
 }
 
 export type RefreshOptions = { forceMergeLine?: boolean; stageIds?: string[] }

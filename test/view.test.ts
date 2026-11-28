@@ -2,11 +2,11 @@ import { expect, test } from 'claude-code/testing'
 
 import { loadConfig } from '../src/config.ts'
 import { checkData, emptyData } from '../src/data.ts'
-import { refreshProfile } from '../src/refresh.ts'
+import { parseAppSessions, refreshProfile } from '../src/refresh.ts'
 import { badge, sectionState } from '../src/state.ts'
 import { barWidths, renderText } from '../src/text.ts'
 import type { BandData, Config, SectionRecord } from '../src/types.ts'
-import { buildView } from '../src/view.ts'
+import { buildView, sessionsSection } from '../src/view.ts'
 import { fakeHost, fixture, NOW, okRun } from './helpers.ts'
 
 const MIN = 60_000
@@ -283,4 +283,17 @@ test('bar widths always add up to the width and give every non-empty part a bloc
   const small = barWidths([{ color: 'green', n: 100 }, { color: 'red', n: 1 }], 20)
   expect(small[1]).toBeGreaterThanOrEqual(1)
   expect(barWidths([{ color: 'green', n: 0 }], 10)).toEqual([0])
+})
+
+test('sessions: groups the recorded app session list by what each waits on', () => {
+  const list = parseAppSessions(fixture('list-sessions.txt'))
+  expect(list.length).toBe(9)
+  const view = sessionsSection({ data: list, fetchedAt: NOW }, { now: NOW, title: 'T' }, 10 * MIN)
+  const lines = view.lines.map(l => l.map(s => s.text).join(''))
+  expect(lines[0]).toBe('open PR (2)')
+  expect(lines.some(l => l.startsWith('running, no open PR (1)'))).toBe(true)
+  expect(lines.some(l => l.startsWith('idle, no PR (1)'))).toBe(true)
+  expect(lines).toContain('2 done (PR merged or closed): archive them')
+  expect(lines).toContain('3 leftover "Nightly job" sessions')
+  expect(view.note).toBe('2 PR · 1 running')
 })

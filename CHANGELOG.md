@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- A **sessions** section lists the Claude desktop app's own sessions: open PR, running, idle with no PR, a count of done sessions to archive, and scheduled-job leftovers. Turn it on with `appSessions` in a profile. Only the mod can read the list.
 - **Needs you** is easier to work through. A header says how many decisions wait on you and how many hours they have waited, with the count a day ago. **Done** hides a need until its text changes. **Mark all seen** greys what has not changed since. A long list shows five and **Show more** opens the rest. A title that starts with "fyi" goes to a folded **FYI and old** section.
 - An issue body can offer answers. A line `Options: A | B | C` adds buttons, and `Recommendation: B` puts B first, marked, in a **Top decisions** section above the rest. A need with no session of its own sends the answer to this session.
 - `links` in `config.json` (`{ "chrome": "<path to chrome.exe>", "profile": "Profile 1" }`) opens pane links in that Chrome profile, for example one signed in to GitHub.
